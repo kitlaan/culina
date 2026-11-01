@@ -365,9 +365,17 @@ fn ingredient_line(i: &Ingredient) -> String {
 }
 
 /// The HTML target: a semantic, unstyled fragment with stable classes.
+/// Meta values ride the article as data attributes — `data-cuisine` is the
+/// color-coded-tab hook for print targets.
 pub fn html_fragment(card: &CardModel) -> String {
+    let cuisine = card
+        .meta
+        .iter()
+        .find(|(label, _)| *label == "cuisine")
+        .map(|(_, v)| format!(" data-cuisine=\"{}\"", esc(v)))
+        .unwrap_or_default();
     let mut out = String::new();
-    out.push_str("<article class=\"culina-recipe\">\n");
+    out.push_str(&format!("<article class=\"culina-recipe\"{cuisine}>\n"));
     out.push_str(&format!(
         "<h1 class=\"culina-title\">{}</h1>\n",
         esc(&card.title)

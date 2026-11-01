@@ -145,6 +145,20 @@ fn production_clause_is_data_not_prose() {
 }
 
 #[test]
+fn cuisine_rides_the_article_for_print_targets() {
+    let html = fragment(CURRY);
+    assert!(
+        html.contains("data-cuisine=\"Thai\""),
+        "the color-coded-tab hook: {html}"
+    );
+    let html = fragment(">> title: Plain\n>> servings: 1\n\n:mix => _dough.\n");
+    assert!(
+        !html.contains("data-cuisine"),
+        "absent when no cuisine: {html}"
+    );
+}
+
+#[test]
 fn authored_prose_is_escaped() {
     let html =
         fragment(">> title: <script>alert(1)</script>\n>> servings: 2\n\n:mix @{flour|1 cup} & @{water|1 cup} well.\n");

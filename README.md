@@ -94,6 +94,16 @@ Cooking For Engineers grid, cook-mode), the scaling engine, sub-recipe
 resolution across files, a WASM target, and per-language cores beyond
 English.
 
+## Origins
+
+Culina started as a riff on [Cooklang](https://cooklang.org) and grew into
+its own language. The `@` ingredient and `#` cookware sigils are
+Cooklang's; the data model is not — Cooklang keeps steps as prose
+paragraphs, while Culina makes food a graph (steps as nodes, products as
+threads), so structure never lives inside prose. Credit where due:
+Cooklang proved a plain-text recipe format could be readable and
+machine-processable at once.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

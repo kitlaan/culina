@@ -3,7 +3,6 @@
 //! durations, enums) and the warn-and-pass-through rule.
 
 use culina_core::fmt::canonicalize_full;
-use culina_core::lexicon::Lexicon;
 
 const CROISSANT: &str = include_str!("fixtures/croissant.culina");
 const CURRY: &str = include_str!("fixtures/red-curry.culina");
@@ -74,7 +73,6 @@ fn servings_accepts_numbers_and_ranges() {
 
 #[test]
 fn date_grammar() {
-    let lex = Lexicon::english();
     let good = [
         "1961",
         "circa 1961",
@@ -86,7 +84,7 @@ fn date_grammar() {
         "1970s - disco era",
     ];
     for v in good {
-        let ok = date_ok(v, &lex);
+        let ok = date_ok(v);
         assert!(ok, "date {v:?} should parse");
     }
     let bad = [
@@ -97,12 +95,11 @@ fn date_grammar() {
         "19",
     ];
     for v in bad {
-        assert!(!date_ok(v, &lex), "date {v:?} should fail");
+        assert!(!date_ok(v), "date {v:?} should fail");
     }
 }
 
-fn date_ok(v: &str, lex: &Lexicon) -> bool {
-    // Same rule as metadata::validate, exercised through the date path.
+fn date_ok(v: &str) -> bool {
     let (err, _) = check(&format!(">> title: T\n>> date: {v}\n\n:mix => _dough\n"));
     err.is_none()
 }

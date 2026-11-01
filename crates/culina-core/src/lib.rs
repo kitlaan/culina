@@ -11,6 +11,7 @@ pub mod fields;
 pub mod fmt;
 pub mod inline;
 pub mod lexicon;
+pub mod metadata;
 pub mod parse;
 pub mod print;
 pub mod units;

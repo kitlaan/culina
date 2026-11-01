@@ -58,8 +58,16 @@ pub fn parse_with(input: &str, lex: &Lexicon) -> Result<Document> {
                 return Err(ParseError::EmptyMetaKey { line: line_no });
             }
             match blocks.last_mut() {
-                Some(Block::Meta(lines)) => lines.push(MetaLine { key, value }),
-                _ => blocks.push(Block::Meta(vec![MetaLine { key, value }])),
+                Some(Block::Meta(lines)) => lines.push(MetaLine {
+                    line_no,
+                    key,
+                    value,
+                }),
+                _ => blocks.push(Block::Meta(vec![MetaLine {
+                    line_no,
+                    key,
+                    value,
+                }])),
             }
         } else if line.starts_with('#') {
             let hashes = line.len() - line.trim_start_matches('#').len();

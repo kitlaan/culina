@@ -17,7 +17,7 @@ pub fn print(doc: &Document) -> String {
         }
         match block {
             Block::Meta(lines) => {
-                for MetaLine { key, value } in lines {
+                for MetaLine { key, value, .. } in lines {
                     out.push_str(">> ");
                     out.push_str(key);
                     out.push_str(": ");

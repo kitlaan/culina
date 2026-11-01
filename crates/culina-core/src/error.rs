@@ -77,6 +77,24 @@ pub enum ParseError {
 
     #[error("line {line}: bad unit registration '{value}' — write it as 'name = amount unit', e.g. 'verre = 90 ml'")]
     BadUnitRegistration { line: usize, value: String },
+
+    #[error("line {line}: '{key}' takes one value — repeated")]
+    MetaCardinality { line: usize, key: String },
+
+    #[error("line {line}: '{key}' wants {expected} — found '{found}'")]
+    MetaLiteral {
+        line: usize,
+        key: String,
+        expected: String,
+        found: String,
+    },
+
+    #[error("line {line}: '{key}' value '{found}' has the wrong shape — empty values, empty tokens, and commas in references are malformed")]
+    MetaShape {
+        line: usize,
+        key: String,
+        found: String,
+    },
 }
 
 impl ParseError {
@@ -102,7 +120,10 @@ impl ParseError {
             | ParseError::MultiplicityOnConsumption { line, .. }
             | ParseError::BadMultiplicity { line, .. }
             | ParseError::OptionalOutsideAt { line }
-            | ParseError::BadUnitRegistration { line, .. } => *line,
+            | ParseError::BadUnitRegistration { line, .. }
+            | ParseError::MetaCardinality { line, .. }
+            | ParseError::MetaLiteral { line, .. }
+            | ParseError::MetaShape { line, .. } => *line,
             ParseError::BadLexicon { .. } => 0,
         }
     }

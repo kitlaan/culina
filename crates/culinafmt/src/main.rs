@@ -93,27 +93,32 @@ fn main() -> ExitCode {
                 continue;
             }
         };
-        match culina_core::fmt::canonicalize_with(&text, Some(&today), collection.as_ref()) {
-            Ok(out) => match mode {
-                Mode::Write => {
-                    if out != text {
-                        if let Err(e) = std::fs::write(path, &out) {
-                            eprintln!("culinafmt: {path}: {e}");
-                            failed = true;
+        match culina_core::fmt::canonicalize_full(&text, Some(&today), collection.as_ref()) {
+            Ok((out, warnings)) => {
+                for w in warnings {
+                    eprintln!("culinafmt: {path}: warning: {w}");
+                }
+                match mode {
+                    Mode::Write => {
+                        if out != text {
+                            if let Err(e) = std::fs::write(path, &out) {
+                                eprintln!("culinafmt: {path}: {e}");
+                                failed = true;
+                            }
+                        }
+                    }
+                    Mode::List => {
+                        if out != text {
+                            println!("{path}");
+                        }
+                    }
+                    Mode::Diff => {
+                        if out != text {
+                            print!("{}", unified_diff(&text, &out, path));
                         }
                     }
                 }
-                Mode::List => {
-                    if out != text {
-                        println!("{path}");
-                    }
-                }
-                Mode::Diff => {
-                    if out != text {
-                        print!("{}", unified_diff(&text, &out, path));
-                    }
-                }
-            },
+            }
             Err(e) => {
                 eprint!("{}", culina_core::error::render(&text, path, &e));
                 failed = true;
@@ -133,8 +138,11 @@ fn run_stdin(collection: Option<&culina_core::lexicon::Lexicon>) -> ExitCode {
         eprintln!("culinafmt: failed to read stdin");
         return ExitCode::FAILURE;
     }
-    match culina_core::fmt::canonicalize_with(&input, None, collection) {
-        Ok(out) => {
+    match culina_core::fmt::canonicalize_full(&input, None, collection) {
+        Ok((out, warnings)) => {
+            for w in warnings {
+                eprintln!("culinafmt: warning: {w}");
+            }
             print!("{out}");
             ExitCode::SUCCESS
         }

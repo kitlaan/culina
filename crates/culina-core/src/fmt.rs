@@ -17,24 +17,41 @@ pub fn canonicalize(input: &str, today: Option<&str>) -> Result<String> {
     canonicalize_with(input, today, None)
 }
 
-/// Canonicalize with a collection overlay on the tool core.
+/// Canonicalize with a collection overlay on the tool core, discarding
+/// warnings (unknown metadata keys).
 pub fn canonicalize_with(
     input: &str,
     today: Option<&str>,
     collection: Option<&Lexicon>,
 ) -> Result<String> {
+    canonicalize_full(input, today, collection).map(|(text, _)| text)
+}
+
+/// Canonicalize, returning warnings alongside the text — unknown metadata
+/// keys warn and pass through (design.md, Key registry), and callers like
+/// culinafmt surface them on stderr.
+pub fn canonicalize_full(
+    input: &str,
+    today: Option<&str>,
+    collection: Option<&Lexicon>,
+) -> Result<(String, Vec<String>)> {
     let lex = resolve_lexicon(input, collection)?;
     let doc = parse::parse_with(input, &lex)?;
     dag::validate(&doc)?;
+    let (errors, warnings) = crate::metadata::validate(&doc, &lex);
+    if let Some(e) = errors.into_iter().next() {
+        return Err(e);
+    }
     let printed = print::print(&doc);
-    match today {
+    let out = match today {
         Some(today) if printed != input => {
             let mut doc = doc;
             stamp_modified(&mut doc, today);
-            Ok(print::print(&doc))
+            print::print(&doc)
         }
-        _ => Ok(printed),
-    }
+        _ => printed,
+    };
+    Ok((out, warnings))
 }
 
 /// The resolution order (design.md, Lexicons): document registry →
@@ -84,7 +101,10 @@ fn stamp_modified(doc: &mut Document, today: &str) {
         }
     }
     if let Some(Block::Meta(lines)) = doc.blocks.first_mut() {
+        // Synthetic line — the stamp is added after validation, so no
+        // error ever points at it.
         lines.push(MetaLine {
+            line_no: 0,
             key: "modified".into(),
             value: today.into(),
         });

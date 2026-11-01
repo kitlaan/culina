@@ -114,6 +114,20 @@ fn validation_error_renders_and_fails() {
 }
 
 #[test]
+fn unknown_meta_key_warns_but_formats() {
+    let path = tmp("warn", ">> title: T\n>> servngs: 6\n\n:mix => _dough\n");
+    let (code, _, err) = run(&[path.to_str().unwrap()], None);
+    assert_eq!(code, Some(0), "warnings never fail: {err}");
+    assert!(err.contains("warning"), "{err}");
+    assert!(err.contains("servngs"), "{err}");
+    assert!(err.contains("line 2"), "{err}");
+    // The opaque value survives formatting.
+    assert!(std::fs::read_to_string(&path)
+        .unwrap()
+        .contains(">> servngs: 6"));
+}
+
+#[test]
 fn version_flag() {
     let (code, out, _) = run(&["--version"], None);
     assert_eq!(code, Some(0));

@@ -27,6 +27,8 @@ pub enum Block {
 
 #[derive(Debug)]
 pub struct MetaLine {
+    /// 1-based line number — where metadata validation errors point.
+    pub line_no: usize,
     pub key: String,
     pub value: String,
 }

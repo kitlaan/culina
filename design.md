@@ -143,7 +143,7 @@ reads. If the two ever drift, regenerate the registry from the rule.
 | `dish` | Token | many | ✓ | "makes both," not "also called" |
 | `aka` | Prose | many | ✗ | script-dependent separators |
 | `image` | Reference | many | ✗ | first = representative |
-| `units` | Literal | one | — | |
+| `units` | Literal | one | — | `metric` / `imperial` / `us` |
 | `lang` | Literal | one | — | |
 | `makes` | Token | many | ✓ | ordered: export/binding order; also display order |
 | `time` | Literal | one | — | override |

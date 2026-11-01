@@ -90,7 +90,7 @@ The renderer carries data on the elements it emits, as attributes:
 | `data-produces` | step `<li>` | what the step creates (`_name`, joined) |
 | `data-cuisine` | the `<article>` | the `>> cuisine` value |
 
-These are the theming API. Three example styleships in
+These are the theming API. Three example stylesheets in
 `crates/culina-site/css/` demonstrate what the hooks enable:
 
 - **`inline-measurements.css`** — amounts and tool states appear in the

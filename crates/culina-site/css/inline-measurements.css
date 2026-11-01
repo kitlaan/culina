@@ -163,7 +163,7 @@ li.culina-recipe-index-item a { color: var(--ink); text-decoration: none; font-w
 .culina-recipe-index-summary { display: block; color: var(--faded); font-style: italic; }
 
 /* ------------------------------------------------------------------
-   The inline-measurement rules - the whole experiment. The renderer
+   The inline-measurement rules - the whole feature. The renderer
    carried amounts and states as data attributes; CSS decides whether
    the reader sees them in the steps at all.
    ------------------------------------------------------------------ */

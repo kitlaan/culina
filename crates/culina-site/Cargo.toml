@@ -1,0 +1,10 @@
+[package]
+name = "culina-site"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+culina-core = { path = "../culina-core" }
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"

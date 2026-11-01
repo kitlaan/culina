@@ -525,6 +525,14 @@ prose until the ecosystem grows it.
 - `factor` is to the dimension base (grams, liters, meters, seconds);
   countables and temperatures carry none.
 
+### Collection config
+
+A `culina.toml` at the collection root is the collection's policy file:
+`[site]` carries generator settings (title, description), `[lexicon]`
+`file = "overlay.toml"` points at the lexicon overlay. Fields are added
+when real collections need them — the same admission discipline as the
+metadata registry.
+
 ## Prep: note or thread?
 
 Identity is a property of crossing step boundaries. Prep used in the same step
@@ -649,6 +657,13 @@ timing, structure:
 The Cooking For Engineers grid is the validation case: it tabulates exactly the
 step→ingredient and step→duration edges the format holds as data, with thread
 lifetimes as carried rows.
+
+The render pipeline: **Document → CardModel → target.** The CardModel is the
+semantic seam — title, meta rows, aggregated ingredients, step prose, JSON-LD
+fields — and HTML is the first target: an unstyled fragment with stable
+`culina-*` classes, so collections theme with their own CSS and other targets
+(Hugo markdown, cook-mode) consume the same model without re-deriving recipe
+semantics.
 
 ## Worked examples
 

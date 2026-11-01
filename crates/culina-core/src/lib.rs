@@ -14,6 +14,7 @@ pub mod lexicon;
 pub mod metadata;
 pub mod parse;
 pub mod print;
+pub mod render;
 pub mod units;
 
 pub use error::{ParseError, Result};

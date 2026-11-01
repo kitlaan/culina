@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/culina-core", "crates/culinafmt"]
+members = ["crates/culina-core", "crates/culinafmt", "crates/culina-site"]
 
 [workspace.package]
 version = "0.1.0"

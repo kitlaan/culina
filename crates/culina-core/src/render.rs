@@ -1,0 +1,333 @@
+//! Renderers — projections of the parsed document (design.md, Output
+//! styles). Document → CardModel → a target.
+//!
+//! The CardModel is the semantic seam: title, meta rows, aggregated
+//! ingredients, step prose, JSON-LD fields. HTML is the first target;
+//! others (Hugo markdown, cook-mode) consume the same model without
+//! re-deriving recipe semantics. The HTML fragment is semantic and
+//! unstyled, with stable `culina-*` classes as the theming hooks —
+//! collections style it with their own CSS.
+
+use serde_json::json;
+
+use crate::ast::{Block, Document, Seg, Sigil, Step};
+use crate::fields::FieldKind;
+
+/// One recipe, semantically rendered — target-independent.
+#[derive(Debug, Default)]
+pub struct CardModel {
+    pub title: String,
+    pub summary: Option<String>,
+    pub serves: Option<String>,
+    /// Display rows: (label, value) — cuisine, dish, source, …
+    pub meta: Vec<(&'static str, String)>,
+    /// First (representative) image path, if the recipe has one.
+    pub photo: Option<String>,
+    /// Section title (`None` for steps before any header) and its steps.
+    pub sections: Vec<(Option<String>, Vec<String>)>,
+    /// Aggregated ingredients: (name, amounts, notes, optional).
+    pub ingredients: Vec<Ingredient>,
+}
+
+#[derive(Debug)]
+pub struct Ingredient {
+    pub name: String,
+    /// Amounts as written — raw field text keeps authored fractions
+    /// ("1 1/3 tsp") and hedges ("about 110 g") intact. Exact summing
+    /// waits for the scaling engine's arithmetic.
+    pub amounts: Vec<String>,
+    pub notes: Vec<String>,
+    pub optional: bool,
+}
+
+/// Project a validated document into the semantic card model.
+pub fn card(doc: &Document) -> CardModel {
+    let mut card = CardModel::default();
+    let mut ingredients: Vec<Ingredient> = Vec::new();
+
+    for m in doc.meta_lines() {
+        match m.key.as_str() {
+            "title" => card.title = m.value.clone(),
+            "summary" => card.summary = Some(m.value.clone()),
+            "servings" => card.serves = Some(m.value.clone()),
+            "image" => {
+                if card.photo.is_none() {
+                    card.photo = Some(m.value.clone());
+                }
+            }
+            _ => {
+                if let Some(label) = meta_label(&m.key) {
+                    card.meta.push((label, m.value.clone()));
+                }
+            }
+        }
+    }
+
+    let mut section: Option<Option<String>> = None;
+    for block in &doc.blocks {
+        match block {
+            Block::Section { title, .. } => {
+                section = Some(Some(title.clone()));
+                card.sections.push((Some(title.clone()), Vec::new()));
+            }
+            Block::Step(step) => {
+                if section.is_none() {
+                    section = Some(None);
+                    card.sections.push((None, Vec::new()));
+                }
+                collect_ingredients(step, &mut ingredients);
+                card.sections
+                    .last_mut()
+                    .expect("section opened above")
+                    .1
+                    .push(step_text(step));
+            }
+            _ => {}
+        }
+    }
+    card.ingredients = ingredients;
+    card
+}
+
+fn meta_label(key: &str) -> Option<&'static str> {
+    Some(match key {
+        "cuisine" => "cuisine",
+        "course" => "course",
+        "dish" => "dish",
+        "diet" => "diet",
+        "keywords" => "keywords",
+        "source" => "source",
+        "date" => "date",
+        "author" => "by",
+        "aka" => "also known as",
+        "lang" => "language",
+        _ => return None,
+    })
+}
+
+fn collect_ingredients(step: &Step, out: &mut Vec<Ingredient>) {
+    let segs = step
+        .head
+        .iter()
+        .chain(step.continuations.iter().flat_map(|c| c.segs.iter()));
+    for seg in segs {
+        if let Seg::Tag(t) = seg {
+            if t.sigil != Sigil::At {
+                continue;
+            }
+            let mut amounts = Vec::new();
+            let mut notes = Vec::new();
+            for f in &t.fields {
+                match f.kind {
+                    FieldKind::Quantity(_) => amounts.push(f.raw.clone()),
+                    FieldKind::Note => notes.push(f.raw.clone()),
+                }
+            }
+            if let Some(alt) = t.alternatives.first() {
+                notes.push(format!("or {}", alt.name));
+            }
+            match out.iter_mut().find(|i| i.name == t.name) {
+                Some(existing) => {
+                    existing.amounts.extend(amounts);
+                    for n in notes {
+                        if !existing.notes.contains(&n) {
+                            existing.notes.push(n);
+                        }
+                    }
+                }
+                None => out.push(Ingredient {
+                    name: t.name.clone(),
+                    amounts,
+                    notes,
+                    optional: t.optional,
+                }),
+            }
+        }
+    }
+}
+
+/// Step prose: the action verb, then authored text verbatim — tags as bare
+/// names (amounts live in the ingredient list), `=>` as "→", `+` as "+".
+fn step_text(step: &Step) -> String {
+    let mut text = String::new();
+    text.push_str(&step.action.verb);
+    let write = |seg: &Seg, text: &mut String| match seg {
+        Seg::Prose(p) => text.push_str(p),
+        Seg::Tag(t) => text.push_str(&t.name),
+        Seg::Plus => text.push('+'),
+        Seg::Arrow => text.push('→'),
+    };
+    for seg in &step.head {
+        write(seg, &mut text);
+    }
+    for cont in &step.continuations {
+        text.push(' ');
+        for seg in &cont.segs {
+            write(seg, &mut text);
+        }
+    }
+    text.trim().to_string()
+}
+
+/// The schema.org Recipe payload the spec promised at JSON-LD emit time.
+pub fn jsonld(card: &CardModel) -> serde_json::Value {
+    let mut v = json!({
+        "@context": "https://schema.org",
+        "@type": "Recipe",
+        "name": card.title,
+    });
+    let obj = v.as_object_mut().expect("json! builds an object");
+    if let Some(s) = &card.summary {
+        obj.insert("description".into(), json!(s));
+    }
+    if let Some(s) = &card.serves {
+        obj.insert("recipeYield".into(), json!(s));
+    }
+    if let Some(p) = &card.photo {
+        obj.insert("image".into(), json!(p));
+    }
+    if !card.ingredients.is_empty() {
+        obj.insert(
+            "recipeIngredient".into(),
+            json!(card
+                .ingredients
+                .iter()
+                .map(ingredient_line)
+                .collect::<Vec<_>>()),
+        );
+    }
+    let steps: Vec<&String> = card.sections.iter().flat_map(|(_, s)| s.iter()).collect();
+    if !steps.is_empty() {
+        obj.insert("recipeInstructions".into(), json!(steps));
+    }
+    for (label, value) in &card.meta {
+        let key = match *label {
+            "cuisine" => "recipeCuisine",
+            "course" => "recipeCategory",
+            "keywords" => "keywords",
+            "by" => "author",
+            "date" => "datePublished",
+            "language" => "inLanguage",
+            "also known as" => "alternateName",
+            _ => continue,
+        };
+        obj.insert(key.into(), json!(value));
+    }
+    v
+}
+
+fn ingredient_line(i: &Ingredient) -> String {
+    let mut line = i.name.clone();
+    if !i.amounts.is_empty() {
+        line.push_str(": ");
+        line.push_str(&i.amounts.join(", "));
+    }
+    if !i.notes.is_empty() {
+        line.push_str(", ");
+        line.push_str(&i.notes.join(", "));
+    }
+    line
+}
+
+/// The HTML target: a semantic, unstyled fragment with stable classes.
+pub fn html_fragment(card: &CardModel) -> String {
+    let mut out = String::new();
+    out.push_str("<article class=\"culina-recipe\">\n");
+    out.push_str(&format!(
+        "<h1 class=\"culina-title\">{}</h1>\n",
+        esc(&card.title)
+    ));
+    if let Some(serves) = &card.serves {
+        out.push_str(&format!(
+            "<p class=\"culina-serves\">Serves {}</p>\n",
+            esc(serves)
+        ));
+    }
+    if let Some(summary) = &card.summary {
+        out.push_str(&format!(
+            "<p class=\"culina-summary\">{}</p>\n",
+            esc(summary)
+        ));
+    }
+    if let Some(photo) = &card.photo {
+        out.push_str(&format!(
+            "<img class=\"culina-photo\" src=\"{}\" alt=\"{}\" loading=\"lazy\">\n",
+            esc(photo),
+            esc(&card.title)
+        ));
+    }
+    if !card.meta.is_empty() {
+        out.push_str("<dl class=\"culina-meta\">\n");
+        for (label, value) in &card.meta {
+            out.push_str(&format!(
+                "<dt class=\"culina-meta-key\">{}</dt><dd class=\"culina-meta-value\">{}</dd>\n",
+                esc(label),
+                esc(value)
+            ));
+        }
+        out.push_str("</dl>\n");
+    }
+    if !card.ingredients.is_empty() {
+        out.push_str("<ul class=\"culina-ingredients\">\n");
+        for i in &card.ingredients {
+            let optional = if i.optional { " culina-optional" } else { "" };
+            out.push_str(&format!(
+                "<li class=\"culina-ingredient{optional}\"><span class=\"culina-ing-name\">{}</span>",
+                esc(&i.name)
+            ));
+            if !i.amounts.is_empty() {
+                out.push_str(&format!(
+                    " <span class=\"culina-ing-amounts\">{}</span>",
+                    esc(&i.amounts.join(", "))
+                ));
+            }
+            if !i.notes.is_empty() {
+                out.push_str(&format!(
+                    " <span class=\"culina-ing-notes\">{}</span>",
+                    esc(&i.notes.join(", "))
+                ));
+            }
+            out.push_str("</li>\n");
+        }
+        out.push_str("</ul>\n");
+    }
+    if !card.sections.is_empty() {
+        out.push_str("<div class=\"culina-method\">\n");
+        for (title, steps) in &card.sections {
+            if let Some(t) = title {
+                out.push_str(&format!("<h3 class=\"culina-section\">{}</h3>\n", esc(t)));
+            }
+            out.push_str("<ol class=\"culina-steps\">\n");
+            for step in steps {
+                out.push_str(&format!("<li class=\"culina-step\">{}</li>\n", esc(step)));
+            }
+            out.push_str("</ol>\n");
+        }
+        out.push_str("</div>\n");
+    }
+    let mut ld = serde_json::to_string(&jsonld(card)).expect("jsonld serializes");
+    // serde_json does not escape angle brackets; a raw "</script" inside a
+    // string would close the element. JSON allows \u003c, which is inert
+    // in HTML — the standard JSON-LD embedding defense.
+    ld = ld.replace('<', "\\u003c");
+    out.push_str(&format!(
+        "<script type=\"application/ld+json\">{ld}</script>\n"
+    ));
+    out.push_str("</article>\n");
+    out
+}
+
+/// HTML-escape. Entities are built from a codepoint at runtime so the raw
+/// sequences never appear in source text — some tooling in this project's
+/// pipeline decodes entities in transit.
+fn esc(s: &str) -> String {
+    let amp = char::from_u32(0x26).unwrap();
+    let lt = format!("{amp}lt;");
+    let gt = format!("{amp}gt;");
+    let quot = format!("{amp}quot;");
+    let amp_entity = format!("{amp}amp;");
+    s.replace('&', &amp_entity)
+        .replace('<', &lt)
+        .replace('>', &gt)
+        .replace('"', &quot)
+}

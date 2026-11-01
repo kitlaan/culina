@@ -35,13 +35,7 @@ pub fn canonicalize_full(
     today: Option<&str>,
     collection: Option<&Lexicon>,
 ) -> Result<(String, Vec<String>)> {
-    let lex = resolve_lexicon(input, collection)?;
-    let doc = parse::parse_with(input, &lex)?;
-    dag::validate(&doc)?;
-    let (errors, warnings) = crate::metadata::validate(&doc, &lex);
-    if let Some(e) = errors.into_iter().next() {
-        return Err(e);
-    }
+    let (doc, _lex, warnings) = prepare(input, collection)?;
     let printed = print::print(&doc);
     let out = match today {
         Some(today) if printed != input => {
@@ -52,6 +46,23 @@ pub fn canonicalize_full(
         _ => printed,
     };
     Ok((out, warnings))
+}
+
+/// Parse and validate a recipe against the full lexicon resolution order,
+/// returning the document for consumers that render rather than reformat
+/// (culina-site, future cook-mode). Errors are loud; warnings ride along.
+pub fn prepare(
+    input: &str,
+    collection: Option<&Lexicon>,
+) -> Result<(Document, Lexicon, Vec<String>)> {
+    let lex = resolve_lexicon(input, collection)?;
+    let doc = parse::parse_with(input, &lex)?;
+    dag::validate(&doc)?;
+    let (errors, warnings) = crate::metadata::validate(&doc, &lex);
+    if let Some(e) = errors.into_iter().next() {
+        return Err(e);
+    }
+    Ok((doc, lex, warnings))
 }
 
 /// The resolution order (design.md, Lexicons): document registry →

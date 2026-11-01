@@ -123,6 +123,73 @@ fn custom_css_is_used_instead_of_the_default() {
 }
 
 #[test]
+fn dotfile_config_drives_the_index() {
+    let dir = tmp_collection("dotfile");
+    std::fs::write(
+        dir.join(".culina.toml"),
+        "[site]\ntitle = \"Test Kitchen\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("a.culina"),
+        ">> title: A\n>> servings: 1\n\n:mix => _dough\n",
+    )
+    .unwrap();
+    let out = dir.join("site");
+    let (code, _, stderr) = run(&[
+        "--in",
+        dir.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(code, Some(0), "stderr: {stderr}");
+    let index = std::fs::read_to_string(out.join("index.html")).unwrap();
+    assert!(index.contains("Test Kitchen"), "{index}");
+}
+
+#[test]
+fn no_config_keeps_the_default_title() {
+    let dir = tmp_collection("defaults");
+    std::fs::write(
+        dir.join("a.culina"),
+        ">> title: A\n>> servings: 1\n\n:mix => _dough\n",
+    )
+    .unwrap();
+    let out = dir.join("site");
+    let (code, _, stderr) = run(&[
+        "--in",
+        dir.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(code, Some(0), "no policy file is not an error: {stderr}");
+    let index = std::fs::read_to_string(out.join("index.html")).unwrap();
+    assert!(index.contains("Recipes"), "default title: {index}");
+}
+
+#[test]
+fn both_config_names_fail_the_build() {
+    let dir = tmp_collection("conflict");
+    std::fs::write(dir.join("culina.toml"), "[site]\ntitle = \"Old\"\n").unwrap();
+    std::fs::write(dir.join(".culina.toml"), "[site]\ntitle = \"New\"\n").unwrap();
+    std::fs::write(
+        dir.join("a.culina"),
+        ">> title: A\n>> servings: 1\n\n:mix => _dough\n",
+    )
+    .unwrap();
+    let out = dir.join("site");
+    let (code, _, stderr) = run(&[
+        "--in",
+        dir.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(code, Some(1), "two policy files conflict: {stderr}");
+    assert!(stderr.contains(".culina.toml"), "{stderr}");
+    assert!(stderr.contains("remove one"), "{stderr}");
+}
+
+#[test]
 fn static_dir_is_copied_verbatim() {
     let dir = tmp_collection("static");
     std::fs::create_dir_all(dir.join("static/photos")).unwrap();

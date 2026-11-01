@@ -618,11 +618,25 @@ prose until the ecosystem grows it.
 
 ### Collection config
 
-A `culina.toml` at the collection root is the collection's policy file:
-`[site]` carries generator settings (title, description), `[lexicon]`
-`file = "overlay.toml"` points at the lexicon overlay. Fields are added
-when real collections need them — the same admission discipline as the
-metadata registry.
+The collection's policy file lives at the collection root, named
+`.culina.toml` or `culina.toml`. The dotfile is preferred: policy is
+for the tool, not for browsing, and the root stays uncluttered. The
+visible name stays valid, so collections that started before the
+dotfile do not break. `[site]` carries generator settings (title,
+description), `[lexicon]` `file = "overlay.toml"` points at the lexicon
+overlay. Fields are added when real collections need them — the same
+admission discipline as the metadata registry.
+
+The filename is policy, not a lookup detail. A policy file that the
+tool does not read degrades the site without a trace, and an unread
+`[lexicon]` overlay unregisters vocabulary into notes while the build
+stays green. The resolution is loud:
+
+| Files at the root | Behavior |
+|---|---|
+| neither name | defaults; the build proceeds |
+| exactly one, either name | that file is the policy |
+| both names | error that names both; the author removes one |
 
 ## Output styles
 

@@ -3,9 +3,10 @@
 //!
 //! The recipe pages are culina-core's semantic fragments with stable
 //! `culina-*` classes; this tool only assembles pages around them. The
-//! collection owns policy through `culina.toml` (`[site]` title, description;
-//! `[lexicon] file` overlay) and theming through a `culina.css` at the input
-//! root — present means used, absent means the built-in default.
+//! collection owns policy through a `.culina.toml` or `culina.toml` at the
+//! input root (`[site]` title, description; `[lexicon] file` overlay) and
+//! theming through a `culina.css` — present means used, absent means the
+//! built-in default.
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -100,10 +101,22 @@ fn flag_error(msg: impl std::fmt::Display) -> ExitCode {
 }
 
 fn read_config(input: &Path) -> Result<Config, String> {
-    let path = input.join("culina.toml");
-    if !path.exists() {
-        return Ok(Config::default());
-    }
+    // Two policy files is a conflict, not a precedence question —
+    // design.md § Collection config owns the rule.
+    let dotfile = input.join(".culina.toml");
+    let visible = input.join("culina.toml");
+    let path = match (dotfile.exists(), visible.exists()) {
+        (true, true) => {
+            return Err(format!(
+                "both {} and {} exist; the policy must live in one file — remove one",
+                dotfile.display(),
+                visible.display()
+            ));
+        }
+        (false, false) => return Ok(Config::default()),
+        (true, false) => dotfile,
+        (false, true) => visible,
+    };
     let text = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     toml::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))
 }
@@ -278,9 +291,10 @@ Usage: culina-site [--in DIR] [--out DIR]
   --in    the collection root (default: current directory)
   --out   output directory (default: site)
 
-The collection root may carry a culina.toml ([site] title, description;
-[lexicon] file = \"overlay.toml\"), a culina.css (used instead of the
-built-in default), and a static/ directory copied verbatim.",
+The collection root may carry a policy file (.culina.toml or
+culina.toml — [site] title, description; [lexicon] file =
+\"overlay.toml\"), a culina.css (used instead of the built-in
+default), and a static/ directory copied verbatim.",
         env!("CARGO_PKG_VERSION")
     );
 }

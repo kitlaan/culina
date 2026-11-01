@@ -68,10 +68,11 @@ With no files: read stdin, print canonical text to stdout (no stamping).
 ```
 
 Walks a directory of `.culina` files and emits flat HTML pages, an index,
-and CSS. Collection policy comes from a `culina.toml` at the input root
-(`[site]` title, description; `[lexicon]` overlay path); a `culina.css` at
-the root replaces the built-in default stylesheet. Broken recipes fail
-the build. A `static/` directory is copied verbatim.
+and CSS. Collection policy comes from a `.culina.toml` or `culina.toml`
+at the input root (`[site]` title, description; `[lexicon]` overlay
+path); a `culina.css` at the root replaces the built-in default
+stylesheet. Broken recipes fail the build. A `static/` directory is
+copied verbatim.
 
 ## Theming
 

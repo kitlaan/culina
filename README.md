@@ -133,6 +133,13 @@ Specced in `design.md`, not yet built: the scaling engine's exact
 arithmetic, sub-recipe resolution across files, a WASM target, and
 per-language cores beyond English.
 
+## Agent development
+
+This repo is built agent-first — AI agents are the primary contributors.
+An [AGENTS.md](AGENTS.md) carries the repo-specific instructions: what to
+read before touching grammar, the verification commands, the commit
+format, and the traps that bit previous agents.
+
 ## Origins
 
 Culina started as a riff on [Cooklang](https://cooklang.org) and grew into

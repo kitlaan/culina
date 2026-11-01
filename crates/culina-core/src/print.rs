@@ -61,7 +61,9 @@ fn print_step(out: &mut String, step: &Step) {
     }
     out.push('\n');
     for cont in &step.continuations {
-        out.push_str(&cont.indent);
+        // Machine-owned indent (gofmt posture: authors choose break points,
+        // culinafmt never wraps and fixes the indent to two spaces).
+        out.push_str("  ");
         for seg in &cont.segs {
             print_seg(out, seg);
         }

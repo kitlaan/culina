@@ -1,39 +1,241 @@
-//! Smoke CLI: parse stdin (or files given as arguments), print canonical
-//! text to stdout. The gofmt flag surface (-l, -d, in-place) lands with the
-//! formatter phase; this exists to exercise the parser by hand.
+//! culinafmt — canonicalize `.culina` recipe files.
+//!
+//! gofmt surface: rewrite files in place by default; `-l` lists files whose
+//! form differs; `-d` prints unified diffs. With no files: stdin to stdout,
+//! no stamping — the `>> modified:` stamp is a file fact.
 
 use std::io::Read;
+use std::process::ExitCode;
 
-fn main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+#[derive(Clone, Copy, PartialEq)]
+enum Mode {
+    Write,
+    List,
+    Diff,
+}
 
-    let inputs: Vec<(String, String)> = if args.is_empty() {
-        let mut buf = String::new();
-        std::io::stdin()
-            .read_to_string(&mut buf)
-            .expect("read stdin");
-        vec![("<stdin>".to_string(), buf)]
-    } else {
-        args.iter()
-            .map(|p| {
-                let text = std::fs::read_to_string(p).unwrap_or_else(|e| {
-                    eprintln!("culinafmt: {p}: {e}");
-                    std::process::exit(1);
-                });
-                (p.clone(), text)
-            })
-            .collect()
-    };
+fn main() -> ExitCode {
+    let mut mode = Mode::Write;
+    let mut files: Vec<String> = Vec::new();
 
-    for (name, text) in inputs {
-        let parsed = culina_core::parse::parse(&text)
-            .and_then(|doc| culina_core::dag::validate(&doc).map(|()| doc));
-        match parsed {
-            Ok(doc) => print!("{}", culina_core::print::print(&doc)),
+    for arg in std::env::args().skip(1) {
+        match arg.as_str() {
+            "--help" => {
+                print_help();
+                return ExitCode::SUCCESS;
+            }
+            "--version" => {
+                println!("culinafmt {}", env!("CARGO_PKG_VERSION"));
+                return ExitCode::SUCCESS;
+            }
+            _ if arg.starts_with('-') => {
+                for c in arg.chars().skip(1) {
+                    match c {
+                        'l' => mode = Mode::List,
+                        'd' => mode = Mode::Diff,
+                        'h' => {
+                            print_help();
+                            return ExitCode::SUCCESS;
+                        }
+                        'V' => {
+                            println!("culinafmt {}", env!("CARGO_PKG_VERSION"));
+                            return ExitCode::SUCCESS;
+                        }
+                        other => {
+                            eprintln!("culinafmt: unknown flag '-{other}'");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                }
+            }
+            _ => files.push(arg),
+        }
+    }
+
+    if files.is_empty() {
+        return run_stdin();
+    }
+
+    let today = culina_core::fmt::today_utc();
+    let mut failed = false;
+    for path in &files {
+        let text = match std::fs::read_to_string(path) {
+            Ok(t) => t,
             Err(e) => {
-                eprint!("{}", culina_core::error::render(&text, &name, &e));
-                std::process::exit(1);
+                eprintln!("culinafmt: {path}: {e}");
+                failed = true;
+                continue;
+            }
+        };
+        match culina_core::fmt::canonicalize(&text, Some(&today)) {
+            Ok(out) => match mode {
+                Mode::Write => {
+                    if out != text {
+                        if let Err(e) = std::fs::write(path, &out) {
+                            eprintln!("culinafmt: {path}: {e}");
+                            failed = true;
+                        }
+                    }
+                }
+                Mode::List => {
+                    if out != text {
+                        println!("{path}");
+                    }
+                }
+                Mode::Diff => {
+                    if out != text {
+                        print!("{}", unified_diff(&text, &out, path));
+                    }
+                }
+            },
+            Err(e) => {
+                eprint!("{}", culina_core::error::render(&text, path, &e));
+                failed = true;
             }
         }
     }
+    if failed {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+fn run_stdin() -> ExitCode {
+    let mut input = String::new();
+    if std::io::stdin().read_to_string(&mut input).is_err() {
+        eprintln!("culinafmt: failed to read stdin");
+        return ExitCode::FAILURE;
+    }
+    match culina_core::fmt::canonicalize(&input, None) {
+        Ok(out) => {
+            print!("{out}");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprint!("{}", culina_core::error::render(&input, "<stdin>", &e));
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn print_help() {
+    println!(
+        "culinafmt {} — canonicalize .culina recipes
+
+Usage: culinafmt [-l|-d] [file ...]
+
+With files: rewrite each in place when its form differs.
+  -l  list files whose form differs; do not write
+  -d  print unified diffs; do not write
+With no files: read stdin, print canonical text to stdout (no stamping).
+",
+        env!("CARGO_PKG_VERSION")
+    );
+}
+
+/// A small unified diff — LCS over lines, three lines of context. Recipes
+/// are small; no diff crate needed.
+fn unified_diff(old: &str, new: &str, name: &str) -> String {
+    #[derive(PartialEq, Clone, Copy)]
+    enum Op {
+        Keep,
+        Del,
+        Add,
+    }
+
+    let a = drop_last_empty(old.split('\n').collect::<Vec<_>>());
+    let b = drop_last_empty(new.split('\n').collect::<Vec<_>>());
+    let (n, m) = (a.len(), b.len());
+
+    let mut lcs = vec![vec![0usize; m + 1]; n + 1];
+    for i in (0..n).rev() {
+        for j in (0..m).rev() {
+            lcs[i][j] = if a[i] == b[j] {
+                lcs[i + 1][j + 1] + 1
+            } else {
+                lcs[i + 1][j].max(lcs[i][j + 1])
+            };
+        }
+    }
+
+    let mut ops: Vec<(Op, &str)> = Vec::new();
+    let (mut i, mut j) = (0, 0);
+    while i < n && j < m {
+        if a[i] == b[j] {
+            ops.push((Op::Keep, a[i]));
+            i += 1;
+            j += 1;
+        } else if lcs[i + 1][j] >= lcs[i][j + 1] {
+            ops.push((Op::Del, a[i]));
+            i += 1;
+        } else {
+            ops.push((Op::Add, b[j]));
+            j += 1;
+        }
+    }
+    while i < n {
+        ops.push((Op::Del, a[i]));
+        i += 1;
+    }
+    while j < m {
+        ops.push((Op::Add, b[j]));
+        j += 1;
+    }
+
+    const CONTEXT: usize = 3;
+    let mut include = vec![false; ops.len()];
+    for (idx, (op, _)) in ops.iter().enumerate() {
+        if *op != Op::Keep {
+            for k in idx.saturating_sub(CONTEXT)..=(idx + CONTEXT).min(ops.len() - 1) {
+                include[k] = true;
+            }
+        }
+    }
+
+    let mut out = format!("--- {name}\n+++ {name}\n");
+    let mut idx = 0;
+    while idx < ops.len() {
+        if !include[idx] {
+            idx += 1;
+            continue;
+        }
+        let start = idx;
+        while idx < ops.len() && include[idx] {
+            idx += 1;
+        }
+        let end = idx;
+
+        let old_start = 1 + ops[..start].iter().filter(|(op, _)| *op != Op::Add).count();
+        let new_start = 1 + ops[..start].iter().filter(|(op, _)| *op != Op::Del).count();
+        let old_count = ops[start..end]
+            .iter()
+            .filter(|(op, _)| *op != Op::Add)
+            .count();
+        let new_count = ops[start..end]
+            .iter()
+            .filter(|(op, _)| *op != Op::Del)
+            .count();
+        out.push_str(&format!(
+            "@@ -{old_start},{old_count} +{new_start},{new_count} @@\n"
+        ));
+        for (op, line) in &ops[start..end] {
+            let prefix = match op {
+                Op::Keep => ' ',
+                Op::Del => '-',
+                Op::Add => '+',
+            };
+            out.push(prefix);
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    out
+}
+
+fn drop_last_empty(mut v: Vec<&str>) -> Vec<&str> {
+    if v.last() == Some(&"") {
+        v.pop();
+    }
+    v
 }

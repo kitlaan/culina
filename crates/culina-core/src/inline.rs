@@ -126,6 +126,16 @@ fn scan(line_no: usize, text: &str) -> Result<Vec<Seg>> {
     if !prose.is_empty() {
         segs.push(Seg::Prose(prose));
     }
+    // Trailing whitespace at end of line is formatting, not content —
+    // gofmt strips it, so does culinafmt. Convergence demands it.
+    if let Some(Seg::Prose(p)) = segs.last_mut() {
+        let trimmed = p.trim_end().to_string();
+        if trimmed.is_empty() {
+            segs.pop();
+        } else {
+            *p = trimmed;
+        }
+    }
     Ok(segs)
 }
 

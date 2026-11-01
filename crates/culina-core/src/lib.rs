@@ -8,6 +8,7 @@ pub mod ast;
 pub mod dag;
 pub mod error;
 pub mod fields;
+pub mod fmt;
 pub mod inline;
 pub mod parse;
 pub mod print;

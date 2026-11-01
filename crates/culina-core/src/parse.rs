@@ -55,7 +55,7 @@ pub fn parse(input: &str) -> Result<Document> {
         } else if line.starts_with('#') {
             let hashes = line.len() - line.trim_start_matches('#').len();
             let title = match line[hashes..].strip_prefix(' ') {
-                Some(t) if !t.is_empty() => t.to_string(),
+                Some(t) if !t.trim_end().is_empty() => t.trim_end().to_string(),
                 _ => return Err(ParseError::SectionMissingSpace { line: line_no }),
             };
             blocks.push(Block::Section {

@@ -45,9 +45,10 @@ Three consumers drive every decision:
 ## Design principles
 
 **Dense source, normalized output.** Authors type terse structured text. A
-formatter canonicalizes it (the gofmt posture): parse → format round-trips, and
-line wrapping is machine-owned. The source is for the author; renderings are
-for everyone else.
+formatter canonicalizes it (the gofmt posture): parse → format round-trips,
+and the continuation indent is machine-owned — authors choose their own break
+points and culinafmt never wraps. The source is for the author; renderings
+are for everyone else.
 
 **Vagueness is a feature.** Recipes are folklore, not lab protocols. The
 format carries the author's real confidence: "1 medium onion" stays a note;
@@ -311,9 +312,11 @@ one expression of it. Different keys carry each half.
 
 ### File lifecycle
 
-- `>> modified:` — the formatter stamps it at every canonicalization; do not
-  hand-edit. It means last canonical revision; unformatted edits are git's
-  business.
+- `>> modified:` — culinafmt stamps it when a run changes the file; an
+  already-canonical file keeps its old stamp, so re-running never dirties a
+  file. It refreshes an existing `modified` line in place and never creates
+  metadata for a file without any. Do not hand-edit; it means last canonical
+  revision, and unformatted edits are git's business.
 - Detached from a repo (zip, email, blog post) the file still self-describes —
   that is the whole argument for the key. Hugo does this dance with `lastmod`.
 - No `created:`. Two independent proofs: the formatter cannot witness birth

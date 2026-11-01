@@ -39,6 +39,10 @@ pub struct StepModel {
     /// (`data-duration`). Fuzzy durations ("overnight") are notes and
     /// stay absent.
     pub duration: Option<String>,
+    /// Threads this step creates (`=> _dough`). The production clause is
+    /// data, not prose — a traditional card never reads "→ base." The
+    /// `data-produces` attribute carries it for targets that want it.
+    pub produces: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -179,12 +183,13 @@ fn collect_ingredients(step: &Step, out: &mut Vec<Ingredient>) {
     }
 }
 
-/// One step's segment structure, plus the folded plain text.
+/// One step's segment structure, plus the folded plain text. The production
+/// clause (`=> _dough`) splits out as `produces` — the traditional card
+/// never reads "→ base", and the trailing punctuation stays with the prose.
 fn step_model(step: &Step) -> StepModel {
-    let mut segments = vec![SegModel::Prose(step.action.verb.clone())];
-    let map = |seg: &Seg, segments: &mut Vec<SegModel>| match seg {
-        Seg::Prose(p) => segments.push(SegModel::Prose(p.clone())),
-        Seg::Tag(t) => segments.push(SegModel::Ref {
+    let map = |seg: &Seg| match seg {
+        Seg::Prose(p) => SegModel::Prose(p.clone()),
+        Seg::Tag(t) => SegModel::Ref {
             kind: match t.sigil {
                 Sigil::At => RefKind::Ingredient,
                 Sigil::Hash => RefKind::Tool,
@@ -203,19 +208,72 @@ fn step_model(step: &Step) -> StepModel {
                     .map(|f| f.raw.clone())
                     .collect(),
             },
-        }),
-        Seg::Plus => segments.push(SegModel::Plus),
-        Seg::Arrow => segments.push(SegModel::Arrow),
+        },
+        Seg::Plus => SegModel::Plus,
+        Seg::Arrow => SegModel::Arrow,
     };
+
+    let mut raw = vec![SegModel::Prose(step.action.verb.clone())];
     for seg in &step.head {
-        map(seg, &mut segments);
+        raw.push(map(seg));
     }
     for cont in &step.continuations {
-        segments.push(SegModel::Prose(" ".into()));
+        raw.push(SegModel::Prose(" ".into()));
         for seg in &cont.segs {
-            map(seg, &mut segments);
+            raw.push(map(seg));
         }
     }
+
+    // Split the production clause: everything from the Arrow onward is
+    // data. Thread refs after the arrow are the produces; prose after
+    // them (the closing period, or a rare trailing sentence) stays with
+    // the step text.
+    let mut segments: Vec<SegModel> = Vec::new();
+    let mut produces: Vec<String> = Vec::new();
+    let mut in_production = false;
+    let mut tail = String::new();
+    for seg in raw {
+        match seg {
+            SegModel::Arrow => in_production = true,
+            SegModel::Ref {
+                kind: RefKind::Thread,
+                name,
+                ..
+            } if in_production => produces.push(name),
+            SegModel::Plus if in_production => {}
+            SegModel::Prose(p) if in_production => {
+                let trimmed = p.trim_start();
+                if !trimmed.is_empty() {
+                    tail = trimmed.to_string();
+                }
+            }
+            other => segments.push(other),
+        }
+    }
+    if !tail.is_empty() {
+        if tail.chars().any(char::is_alphabetic) {
+            // Real prose after the production (a continuation note, a
+            // trailing sentence): keep the separator space that preceded
+            // the arrow — "fish sauce (start this…)" not "fish sauce(start".
+            segments.push(SegModel::Prose(tail));
+        } else {
+            // Pure punctuation (the closing period): tight closure —
+            // "square" + "." not "square .".
+            while segments
+                .last()
+                .is_some_and(|s| matches!(s, SegModel::Prose(p) if p.trim().is_empty()))
+            {
+                segments.pop();
+            }
+            if let Some(SegModel::Prose(p)) = segments.last_mut() {
+                while p.ends_with(char::is_whitespace) {
+                    p.pop();
+                }
+            }
+            segments.push(SegModel::Prose(tail));
+        }
+    }
+
     StepModel {
         text: fold_text(&segments),
         segments,
@@ -224,6 +282,7 @@ fn step_model(step: &Step) -> StepModel {
             .fields
             .iter()
             .find_map(|f| f.quantity().filter(|q| q.is_time()).map(|_| f.raw.clone())),
+        produces,
     }
 }
 
@@ -380,7 +439,12 @@ pub fn html_fragment(card: &CardModel) -> String {
                     .as_ref()
                     .map(|d| format!(" data-duration=\"{}\"", esc(d)))
                     .unwrap_or_default();
-                out.push_str(&format!("<li class=\"culina-step\"{dur}>"));
+                let prod = if step.produces.is_empty() {
+                    String::new()
+                } else {
+                    format!(" data-produces=\"{}\"", esc(&step.produces.join(" + ")))
+                };
+                out.push_str(&format!("<li class=\"culina-step\"{dur}{prod}>"));
                 for seg in &step.segments {
                     match seg {
                         SegModel::Prose(p) => out.push_str(&esc(p)),

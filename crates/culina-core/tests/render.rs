@@ -28,14 +28,25 @@ fn fixture_cards_render() {
     assert!(html.contains("culina-ing-amounts\">500 g"), "{html}");
     assert!(html.contains("culina-section\">Lamination"), "{html}");
 
-    // Plain step prose: verb + tags as names, arrow as →.
+    // Plain step prose: verb + tags as names. The production clause is
+    // data, not prose — a traditional card never reads "→ base".
     let step = &model.sections[2].1[0];
     assert!(
         step.text.contains("roll dough into an 8x16 in rectangle"),
         "{:?}",
         step.text
     );
-    assert!(step.text.ends_with("→ sheet."), "{:?}", step.text);
+    assert!(
+        step.text.ends_with("rectangle."),
+        "punctuation closes the sentence: {:?}",
+        step.text
+    );
+    assert_eq!(step.produces, vec!["sheet".to_string()]);
+    assert!(
+        html.contains("data-produces=\"sheet\""),
+        "produces ride the li: {html}"
+    );
+    assert!(!html.contains("→ sheet"), "no arrow in step prose: {html}");
 
     // The HTML target wraps refs in spans with values as data attributes.
     assert!(
@@ -101,6 +112,8 @@ fn jsonld_is_schema_recipe() {
     assert!(s.contains("alternateName"), "aka maps: {s}");
     // The curry has no authored date; JSON-LD must not invent one.
     assert!(!s.contains("datePublished"), "{s}");
+    // Instructions are clean prose — the production clause never leaks.
+    assert!(!s.contains("→"), "no arrows in recipeInstructions: {s}");
 }
 
 #[test]
@@ -114,6 +127,21 @@ fn steps_carry_their_durations() {
     let html =
         fragment(">> title: T\n>> servings: 1\n\n:mix @{flour|1 cup} => _dough.\n:{rest|overnight} _dough.\n");
     assert!(!html.contains("data-duration"), "{html}");
+}
+
+#[test]
+fn production_clause_is_data_not_prose() {
+    // A continuation after a production keeps its separator space.
+    let (doc, _, _) = prepare(CURRY, None).unwrap();
+    let model = card(&doc);
+    let toss = &model.sections[0].1[0];
+    assert!(
+        toss.text
+            .ends_with("fish sauce (start this before the paste; it needs 15 min)"),
+        "continuation separation: {:?}",
+        toss.text
+    );
+    assert_eq!(toss.produces, vec!["chicken".to_string()]);
 }
 
 #[test]

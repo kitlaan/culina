@@ -5,6 +5,7 @@
 //! the stress fixtures in `tests/fixtures/`.
 
 pub mod ast;
+pub mod dag;
 pub mod error;
 pub mod fields;
 pub mod inline;

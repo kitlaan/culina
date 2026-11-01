@@ -26,10 +26,12 @@ fn main() {
     };
 
     for (name, text) in inputs {
-        match culina_core::parse::parse(&text) {
+        let parsed = culina_core::parse::parse(&text)
+            .and_then(|doc| culina_core::dag::validate(&doc).map(|()| doc));
+        match parsed {
             Ok(doc) => print!("{}", culina_core::print::print(&doc)),
             Err(e) => {
-                eprintln!("culinafmt: {name}: {e}");
+                eprint!("{}", culina_core::error::render(&text, &name, &e));
                 std::process::exit(1);
             }
         }

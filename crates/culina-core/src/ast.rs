@@ -33,6 +33,8 @@ pub struct MetaLine {
 
 #[derive(Debug)]
 pub struct Step {
+    /// Head line number (1-based) — where errors point.
+    pub line_no: usize,
     pub action: Action,
     /// Segments of the head line after the action.
     pub head: Vec<Seg>,
@@ -110,6 +112,14 @@ pub struct AltGroup {
 }
 
 impl Document {
+    /// Steps in document order — the food DAG's node sequence.
+    pub fn steps(&self) -> impl Iterator<Item = &Step> {
+        self.blocks.iter().filter_map(|b| match b {
+            Block::Step(s) => Some(s),
+            _ => None,
+        })
+    }
+
     /// All metadata lines in file order, across meta blocks.
     pub fn meta_lines(&self) -> impl Iterator<Item = &MetaLine> {
         self.blocks

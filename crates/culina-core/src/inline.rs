@@ -38,6 +38,7 @@ pub fn parse_step(acc: &StepAcc) -> Result<Step> {
         })
         .collect::<Result<Vec<_>>>()?;
     Ok(Step {
+        line_no: acc.line_no,
         action,
         head,
         continuations,

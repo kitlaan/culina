@@ -1,31 +1,32 @@
 # Culina — design note
 
-First draft, from ideation sessions on 2026-10-31 and 2026-11-01. It started as a Cooklang
-alternative and diverged: the core idea is a **dataflow graph of food**, which
-Cooklang does not have. The grammar has survived two stress tests (a laminated
-dough and a mise-en-place curry); both are embedded at the bottom as fixtures.
+This is the Culina specification. The core idea is a **dataflow graph of
+food**: steps are nodes, products are threads. The grammar has survived two
+stress tests — a laminated dough and a mise-en-place curry — and both are
+embedded at the bottom as conformance fixtures.
+
+Prose sections state rules and the reasoning behind them. Tables and worked
+examples are normative — what a conformance test reads. Where prose and
+tables disagree, the tables were generated from the prose; regenerate them.
 
 **Contents**
 
 - [Summary](#summary)
 - [Design principles](#design-principles)
 - [Document structure](#document-structure)
-- [Metadata](#metadata)
-- [Provenance and dates](#provenance-and-dates)
 - [Tags and sigils](#tags-and-sigils)
 - [The field grammar](#the-field-grammar)
 - [Quantities and units](#quantities-and-units)
 - [Threads and the DAG](#threads-and-the-dag)
-- [Tools](#tools)
 - [Verbs](#verbs)
-- [Lexicons](#lexicons)
-- [Prep: note or thread?](#prep-note-or-thread)
-- [Divided ingredients](#divided-ingredients)
 - [Sub-recipe references](#sub-recipe-references)
-- [Portioning: yield vs servings](#portioning-yield-vs-servings)
-- [Repetition](#repetition)
 - [Timing, doneness, anchors](#timing-doneness-anchors)
+- [Portioning: yield vs servings](#portioning-yield-vs-servings)
+- [Metadata](#metadata)
+- [Provenance and dates](#provenance-and-dates)
+- [Lexicons](#lexicons)
 - [Output styles](#output-styles)
+- [Repetition](#repetition)
 - [Worked examples](#worked-examples)
 - [Open items](#open-items)
 
@@ -52,18 +53,18 @@ are for everyone else.
 
 **Vagueness is a feature.** Recipes are folklore, not lab protocols. The
 format carries the author's real confidence: "1 medium onion" stays a note;
-"110 g" is an amount that scales. Parse-or-note gives fuzzy quantities a
-first-class home instead of a validation error. Precision is opt-in, via
-equivalency fields.
+"110 g" is an amount that scales. Parse-or-note keeps fuzzy quantities valid
+instead of rejecting them. Precision is opt-in, via equivalency fields.
 
 **One field grammar.** Every tag — `@`, `#`, `:`, `_` — shares one `|` field
 grammar. A field is a quantity if the quantity grammar consumes it fully;
 otherwise it is a note. Meaning differs per sigil; syntax never does.
 
-**The step is the dial.** The author picks step granularity, and the choice
-carries meaning. Inline prep gets no card; prep in its own step does. Expanded
-repetitions are real nodes; collapsed ones are a single node. There is no
-language construct for any of this — the author's structure *is* the semantics.
+**The step is the dial.** The author turns the dial by picking step
+granularity, and the position carries meaning. Inline prep gets no card;
+prep in its own step does. Expanded repetitions are real nodes; collapsed
+ones are a single node. There is no language construct for any of this —
+the author's structure *is* the semantics.
 
 **Authored prose is canonical.** "Until doubled" and "in a warm spot" stay the
 author's words. Print styles quote them; cook-mode and grids generate from
@@ -84,6 +85,220 @@ structure.
 The `#` collision (header vs. tool) resolves positionally: steps start with
 `:`, so a line-initial `# ` is always a section and `#foo` mid-step is always
 a tool.
+
+## Tags and sigils
+
+| Sigil | Meaning | `\|` fields mean |
+|---|---|---|
+| `:` | action, one per step | quantities classify by unit (time → duration); the rest are conditions |
+| `@` | ingredient | amount list, then prep/provenance notes |
+| `#` | tool, stateful | quantity = state magnitude (`350F`); note = word state (`lid on`) |
+| `_` | thread reference | multiplicity, at creation only |
+| `=>` | names a product | creates or renames a thread |
+| `?` | optional, on the `@` name | |
+| `{...}{...}` | alternatives | each group is a complete parallel tag |
+| `+` | joins references | sugar for multiple `_` |
+| `%` | unit escape | forces quantity classification |
+
+Braces when a tag is multiword or carries `|`. Bare otherwise: `@salt`,
+`#oven`, `_dough`.
+
+`=>` is the canonical production sigil; `→` is accepted input sugar, and the
+formatter rewrites it to `=>` on canonicalization. With this, the grammar is
+pure ASCII: every non-ASCII byte in a recipe file is data — a Thai alias, a
+rendered ⅛ — never syntax.
+
+## The field grammar
+
+Split, classify, partition:
+
+1. **Split** braced content on `|`.
+2. **Classify** each field independently. A field is a quantity only if the
+   quantity grammar consumes it fully — a number (range, mixed number, ASCII
+   fraction), an optional unit from the dictionary, no remainder. `350F` ✓.
+   `1-2 g` ✓. `1/4-inch dice` ✗ — the trailing word makes it a note. This
+   full-consumption rule is what makes parse-or-note deterministic.
+3. **Partition.** The leading run of quantities is the amount list. The first
+   note ends it. **A quantity after a note is a syntax error**, not a demotion.
+   `@{onion|diced|2}` fails loudly, because silent demotion would drop the
+   amount from scaling.
+
+Rules that follow:
+
+- Multiple quantities = **equivalency**: `@{paprika|1-2 g|1 tsp}`. Renderers
+  pick per the units dial; the scaling engine converts between them.
+- A missing amount on `@` = **implicit 1**. `@{onion|diced}` is 1 onion, diced.
+  Scaling works on the implicit count for free.
+- A field may open with an **approx prefix** (`about`, `around`, `roughly`,
+  `~` — per-language lexicon): it strips and sets an approx flag, and the
+  quantity inside still parses. `:{rest|about 1 hour}` keeps its timer;
+  renderers print the hedge.
+- `%` forces a quantity with an unknown unit: `@{flour|1%glug|sifted}`.
+  Without it, an unknown unit word demotes the whole field to a note and the
+  amount vanishes.
+- Units infer from the dictionary by longest match. Glued forms parse (`20g`,
+  `350F`), as do ranges (`1-2 g`) and mixed numbers (`1 1/3 tsp`).
+
+Worked cases:
+
+```
+@{paprika|1-2 g|1 tsp}           amount [1-2 g, 1 tsp]   equivalency
+@{onion|2|diced}                 amount [2], notes [diced]
+@{potato|2|1/4-inch dice}        amount [2], notes [1/4-inch dice]
+@{onion|1|110 g}                 amount [1, 110 g]       equivalency ("1, about 110 g")
+@{tomato sauce|1 batch|from r}   amount [1 batch], notes [from r]
+@{flour|1%glug|sifted}           amount [1 glug], notes [sifted]
+@{onion|1|about 110 g}           amount [1, ~110 g]       approx flag
+@{onion|diced}                   implicit 1, notes [diced]
+@{onion|diced|2}                 syntax error
+```
+
+## Quantities and units
+
+- Dictionary plus longest match; `%` as the escape hatch for glued or exotic
+  units.
+- **ASCII in source, unicode in render:** type `1/8 in`, print `⅛`.
+- Size words ("medium") are notes. There is no standard onion size; do not
+  manufacture grams the author does not have. When precision matters, opt in:
+  `@{onion|1|110 g|diced}`.
+- Folk amounts ("to taste", "a handful") are notes. Scaling leaves them alone.
+- Scaling sees the difference: mass scales exactly; count-with-size rounds to
+  cook-sensible steps, or prints "1½ medium onions" and lets the human judge.
+- Output dials are orthogonal to layout: spelling length (`t.` / `tsp` /
+  `teaspoon`), unit system (SI: `1050 g` → `1.05 kg`), scale factor.
+
+## Threads and the DAG
+
+The core idea. Steps are nodes; products are threads.
+
+- **Named at creation:** `=> _dough` on the producing step. Every `_name`
+  resolves or it is an error. A typo must not silently fork the graph.
+- **Explicit consumption, no implicit parents.** A step with no `_` consumes
+  nothing. This is deliberate: "parent is previous step" misfires on setup
+  steps (preheat) and hides typos. `_dough` is cheap to type and the formatter
+  elides the repetition on render.
+- **A step with no `_` and no `=>` is a setup step**, outside the food DAG:
+  `:preheat #{oven|425F}`. Tool-state sets are the other example:
+  `:lower #{oven|375F}` between two bakes.
+- **Evolution without renames:** `:{rest|1 hour} _dough` touches the live
+  thread. Three fold/rest cycles keep the name `_laminate`.
+- **Rename = rebind:** `:shape _dough into a loaf => _loaf`.
+- **Fork:** multiple outputs, `=> _bagels + _buns`; or unnamed multiplicity,
+  `=> _{dough|2}`.
+- **Join:** multiple `_` in one step (`+` is sugar). Multi-consume is not
+  necessarily a merge — outputs are whatever `=>` says.
+- **Groups:** forks name their groups — `=> _{triangles|6} + _{rectangles|6}`.
+  Counts ride on the thread; later references are bare (`_triangles`).
+  Multiplicity flows through transforms (6 triangles → 6 croissants).
+  **No mid-group slicing:** forks name groups instead. Piece selection is
+  deferred until a real recipe needs it.
+
+### Tools
+
+- **Temp attaches to tools; time attaches to actions.** `#{oven|425F}` is oven
+  state; `:{bake|10 min}` is step time.
+- State is a word (`#{pot|lid on}`, `#{wok|medium}`, `#{skillet|dry}`) or a
+  quantity (`#{oven|350F}`) — same field grammar, classified the same way.
+- Cook-mode derives a step's ambient conditions from tool-state history: the
+  oven set at preheat holds through the bake. Print renderers need the same
+  derivation, because the temp can sit sections away from its use.
+
+### Prep: note or thread?
+
+Things get identity only when they cross step boundaries. Prep used in the
+same step is a note (`@{shallot|2|halved}`). Prep that needs its own
+attention or clock — toasting spices — becomes a thread
+(`:toast … => _spices`). The author's step granularity is the dial, and
+cook-mode reads it for free: thread = a card, inline note = no card.
+
+### Divided ingredients
+
+Portioning one thing across steps is an ingredient→thread fork. No "divided"
+flag exists, and none is needed:
+
+```
+:pick @{cilantro|1 bunch} into roots and leaves => _{cilantro roots} + _{cilantro leaves}.
+```
+
+Grocery sums stay exact. Contrast: repeated *quantified* uses (fish sauce,
+1 tbsp, twice) stay plain tags and simply sum.
+
+## Verbs
+
+- Free-form. A **known-verb lexicon** (bake, knead, rest, make, use, …) earns
+  first-class behavior: timer templates, tense handling, step-card titles.
+  Unknown verbs degrade to plain prose. Do not lock the vocabulary.
+- On sub-recipe references, the verb carries acquisition mode: `make` = cook
+  it now, `use` = assume pre-made.
+
+## Sub-recipe references
+
+A recipe is a function: ingredients in, steps, products out. A reference is a
+call — one opaque node that produces a thread:
+
+```
+:make @{tomato sauce|1 batch|from recipes/tomato-sauce} => _sauce.
+:use  @{tomato sauce|1 batch|from recipes/tomato-sauce} => _sauce.
+```
+
+- `from <path>` rides as a provenance note. Without it:
+  `@{tomato sauce|1 batch|store-bought}` — a plain ingredient, no link.
+- **Addressing:** relative paths, resolved from the referencing file's
+  directory. An extension is optional, not excluded — resolvers try the
+  literal path first, then extension candidates (`.culina`). URLs are
+  permitted for shared collections; fetch policy is tooling's.
+- The parent binds its own name via `=>`; the child's threads stay scoped.
+- **Opaque node, not transclusion.** Expansion is a render projection —
+  cook-mode offers "tap to expand", print shows a pointer. Transclusion as
+  source structure would couple edit histories and inject the child's
+  overnight anchors into the parent's schedule.
+- Scaling propagates: parent factor × batch amount → child rendered scaled.
+  The child's yield policy is consulted; a parse-time consistency check
+  verifies parent request against child yield.
+- Grocery resolution is recursive with a cycle guard (cake → frosting → cake
+  crumbs → cake is legal provenance, not an infinite traversal).
+- Node duration = the child's critical path, so collapsed scheduling still
+  works.
+- **Multi-output children:** the child declares its exports in binding order
+  via `>> makes: _stock, _meat` (also the display order), and the parent
+  binds positionally with its own names — `:use @{roast chicken|1 batch|from
+  recipes/roast-chicken} => _stock + _meat.` A single-terminal child needs
+  no `makes:` (its only terminal is the implicit export). A multi-terminal
+  child without one still parses and renders, but a parent reference errors
+  loudly. Amounts scale the whole child.
+
+## Timing, doneness, anchors
+
+- Durations are time-classified fields on actions. Fuzzy durations ("overnight")
+  are notes; the fuzzy-duration lexicon channel maps them (overnight ≈ 8–12 h)
+  so cook-mode still gets timers.
+- Doneness stays folk, but the frame is lifted: the doneness-markers channel
+  recognizes "until X" spans and attaches them to the step as a typed field,
+  without interpreting X. "Until doubled" becomes a distinct card element
+  and a search target; the contents stay folklore. One sub-case is
+  machine-readable for free: a span containing a quantity ("until 165F
+  internal") parses via the ordinary quantity grammar — probe-thermometer
+  alarms, done-prediction against the timer. Zero new syntax; the braced form
+  already carried conditions (`:{rest|doubled}` — non-quantity `|` fields on
+  actions are conditions).
+- Anchors ("the night before", "start the rice when the curry first simmers")
+  stay prose hints. The DAG plus durations does the scheduling.
+
+## Portioning: yield vs servings
+
+- **Yield** = terminal multiplicity. "Makes 12 croissants" is simply
+  `=> _{croissant|12}`.
+- **Servings** = `>> servings`. Scaling keys on it.
+- They diverge — a curry is one pot serving four — and that is fine: servings
+  is the baseline, multiplicity is a display fact.
+- **Display rule:** "Serves N" always renders, from metadata. "Makes …"
+  renders when terminal multiplicity is greater than one, joining terminals
+  with "and" — a one-pot curry correctly shows only "serves 4."
+- **Scaling:** `>> yield-scales: count | size`. `count` (the default when
+  absent) multiplies yield by the scale factor, rounded to whole, never below
+  one — 12 buns become 18; one loaf becomes two, and paired with a sized
+  tool the scaler can say "you now need 2 pans." `size` fixes the count and
+  lets each item absorb the scale — the rare "one bigger celebration cake."
 
 ## Metadata
 
@@ -118,7 +333,8 @@ Repetition rules:
 - Comma-splitting is sugar, available **only to token-form keys** — everywhere
   else commas are content, so prose, reference, and definition keys take lines
   only. Rule of thumb: a value that may contain a comma repeats per line.
-- Single-value keys error on repeat — loud, same rule as quantity-after-note.
+- Single-value keys error on repeat — the error names the line, same rule as
+  quantity-after-note.
 - The formatter emits one canonical form. Lenient input, one output — the
   gofmt posture again.
 
@@ -152,8 +368,8 @@ reads. If the two ever drift, regenerate the registry from the rule.
 | `unit` | Definition | many | ✗ | `name = value` |
 
 Unknown keys: **warn and pass through.** A collection's `>> blog-category:`
-should not fork the spec, but silence would hide typos (`>> servngs: 6`), so
-the parser warns and keeps the value opaque.
+should not create a variant format, but silence would hide typos
+(`>> servngs: 6`), so the parser warns and keeps the value opaque.
 
 ### Key classes
 
@@ -354,131 +570,6 @@ A zip exports files, not the container, so container-owned facts stay behind.
 Build-time caveats: rebases soften first-commit dates; a bulk import without a
 manifest lands everything "added" on one day.
 
-## Tags and sigils
-
-| Sigil | Meaning | `\|` fields mean |
-|---|---|---|
-| `:` | action, one per step | quantities classify by unit (time → duration); the rest are conditions |
-| `@` | ingredient | amount list, then prep/provenance notes |
-| `#` | tool, stateful | quantity = state magnitude (`350F`); note = word state (`lid on`) |
-| `_` | thread reference | multiplicity, at creation only |
-| `=>` | names a product | creates or renames a thread |
-| `?` | optional, on the `@` name | |
-| `{...}{...}` | alternatives | each group is a complete parallel tag |
-| `+` | joins references | sugar for multiple `_` |
-| `%` | unit escape | forces quantity classification |
-
-Braces when a tag is multiword or carries `|`. Bare otherwise: `@salt`,
-`#oven`, `_dough`.
-
-`=>` is the canonical production sigil; `→` is accepted input sugar, and the
-formatter rewrites it to `=>` on canonicalization. With this, the grammar is
-pure ASCII: every non-ASCII byte in a recipe file is data — a Thai alias, a
-rendered ⅛ — never syntax.
-
-## The field grammar
-
-Split, classify, partition:
-
-1. **Split** braced content on `|`.
-2. **Classify** each field independently. A field is a quantity only if the
-   quantity grammar consumes it fully — a number (range, mixed number, ASCII
-   fraction), an optional unit from the dictionary, no remainder. `350F` ✓.
-   `1-2 g` ✓. `1/4-inch dice` ✗ — the trailing word makes it a note. This
-   full-consumption rule is what makes parse-or-note deterministic.
-3. **Partition.** The leading run of quantities is the amount list. The first
-   note ends it. **A quantity after a note is a syntax error**, not a demotion.
-   `@{onion|diced|2}` fails loudly, because silent demotion would drop the
-   amount from scaling.
-
-Rules that follow:
-
-- Multiple quantities = **equivalency**: `@{paprika|1-2 g|1 tsp}`. Renderers
-  pick per the units dial; the scaling engine converts between them.
-- A missing amount on `@` = **implicit 1**. `@{onion|diced}` is 1 onion, diced.
-  Scaling works on the implicit count for free.
-- A field may open with an **approx prefix** (`about`, `around`, `roughly`,
-  `~` — per-language lexicon): it strips and sets an approx flag, and the
-  quantity inside still parses. `:{rest|about 1 hour}` keeps its timer;
-  renderers print the hedge.
-- `%` forces a quantity with an unknown unit: `@{flour|1%glug|sifted}`.
-  Without it, an unknown unit word demotes the whole field to a note and the
-  amount vanishes.
-- Units infer from the dictionary by longest match. Glued forms parse (`20g`,
-  `350F`), as do ranges (`1-2 g`) and mixed numbers (`1 1/3 tsp`).
-
-Worked cases:
-
-```
-@{paprika|1-2 g|1 tsp}           amount [1-2 g, 1 tsp]   equivalency
-@{onion|2|diced}                 amount [2], notes [diced]
-@{potato|2|1/4-inch dice}        amount [2], notes [1/4-inch dice]
-@{onion|1|110 g}                 amount [1, 110 g]       equivalency ("1, about 110 g")
-@{tomato sauce|1 batch|from r}   amount [1 batch], notes [from r]
-@{flour|1%glug|sifted}           amount [1 glug], notes [sifted]
-@{onion|1|about 110 g}           amount [1, ~110 g]       approx flag
-@{onion|diced}                   implicit 1, notes [diced]
-@{onion|diced|2}                 syntax error
-```
-
-## Quantities and units
-
-- Dictionary plus longest match; `%` as the escape hatch for glued or exotic
-  units.
-- **ASCII in source, unicode in render:** type `1/8 in`, print `⅛`.
-- Size words ("medium") are notes. There is no standard onion size; do not
-  manufacture grams the author does not have. When precision matters, opt in:
-  `@{onion|1|110 g|diced}`.
-- Folk amounts ("to taste", "a handful") are notes. Scaling leaves them alone.
-- Scaling sees the difference: mass scales exactly; count-with-size rounds to
-  cook-sensible steps, or prints "1½ medium onions" and lets the human judge.
-- Output dials are orthogonal to layout: spelling length (`t.` / `tsp` /
-  `teaspoon`), unit system (SI: `1050 g` → `1.05 kg`), scale factor.
-
-## Threads and the DAG
-
-The core idea. Steps are nodes; products are threads.
-
-- **Named at creation:** `=> _dough` on the producing step. Every `_name`
-  resolves or it is an error. A typo must not silently fork the graph.
-- **Explicit consumption, no implicit parents.** A step with no `_` consumes
-  nothing. This is deliberate: "parent is previous step" misfires on setup
-  steps (preheat) and hides typos. `_dough` is cheap to type and the formatter
-  elides the repetition on render.
-- **A step with no `_` and no `=>` is a setup step**, outside the food DAG:
-  `:preheat #{oven|425F}`. Tool-state sets are the other example:
-  `:lower #{oven|375F}` between two bakes.
-- **Evolution without renames:** `:{rest|1 hour} _dough` touches the live
-  thread. Three fold/rest cycles keep the name `_laminate`.
-- **Rename = rebind:** `:shape _dough into a loaf => _loaf`.
-- **Fork:** multiple outputs, `=> _bagels + _buns`; or unnamed multiplicity,
-  `=> _{dough|2}`.
-- **Join:** multiple `_` in one step (`+` is sugar). Multi-consume is not
-  necessarily a merge — outputs are whatever `=>` says.
-- **Groups:** forks name their groups — `=> _{triangles|6} + _{rectangles|6}`.
-  Counts ride on the thread; later references are bare (`_triangles`).
-  Multiplicity flows through transforms (6 triangles → 6 croissants).
-  **No mid-group slicing:** forks name groups instead. Piece selection is
-  deferred until a real recipe needs it.
-
-## Tools
-
-- **Temp attaches to tools; time attaches to actions.** `#{oven|425F}` is oven
-  state; `:{bake|10 min}` is step time.
-- State is a word (`#{pot|lid on}`, `#{wok|medium}`, `#{skillet|dry}`) or a
-  quantity (`#{oven|350F}`) — same field grammar, classified the same way.
-- Cook-mode derives a step's ambient conditions from tool-state history: the
-  oven set at preheat holds through the bake. Print renderers need the same
-  derivation, because the temp can sit sections away from its use.
-
-## Verbs
-
-- Free-form. A **known-verb lexicon** (bake, knead, rest, make, use, …) earns
-  first-class behavior: timer templates, tense handling, step-card titles.
-  Unknown verbs degrade to plain prose. Do not lock the vocabulary.
-- On sub-recipe references, the verb carries acquisition mode: `make` = cook
-  it now, `use` = assume pre-made.
-
 ## Lexicons
 
 Per-language word tables the parser consults — the thesaurus behind
@@ -533,114 +624,6 @@ A `culina.toml` at the collection root is the collection's policy file:
 when real collections need them — the same admission discipline as the
 metadata registry.
 
-## Prep: note or thread?
-
-Identity is a property of crossing step boundaries. Prep used in the same step
-is a note (`@{shallot|2|halved}`). Prep that needs its own attention or clock —
-toasting spices — becomes a thread (`:toast … => _spices`). The author's step
-granularity is the dial, and cook-mode reads it for free: thread = a card,
-inline note = no card.
-
-## Divided ingredients
-
-Portioning one thing across steps is an ingredient→thread fork. No "divided"
-flag exists, and none is needed:
-
-```
-:pick @{cilantro|1 bunch} into roots and leaves => _{cilantro roots} + _{cilantro leaves}.
-```
-
-Grocery sums stay exact. Contrast: repeated *quantified* uses (fish sauce,
-1 tbsp, twice) stay plain tags and simply sum.
-
-## Sub-recipe references
-
-A recipe is a function: ingredients in, steps, products out. A reference is a
-call — one opaque node that produces a thread:
-
-```
-:make @{tomato sauce|1 batch|from recipes/tomato-sauce} => _sauce.
-:use  @{tomato sauce|1 batch|from recipes/tomato-sauce} => _sauce.
-```
-
-- `from <path>` rides as a provenance note. Without it:
-  `@{tomato sauce|1 batch|store-bought}` — a plain ingredient, no link.
-- **Addressing:** relative paths, resolved from the referencing file's
-  directory. An extension is optional, not excluded — resolvers try the
-  literal path first, then extension candidates (`.culina`). URLs are
-  permitted for shared collections; fetch policy is tooling's.
-- The parent binds its own name via `=>`; the child's threads stay scoped.
-- **Opaque node, not transclusion.** Expansion is a render projection —
-  cook-mode offers "tap to expand", print shows a pointer. Transclusion as
-  source structure would couple edit histories and inject the child's
-  overnight anchors into the parent's schedule.
-- Scaling propagates: parent factor × batch amount → child rendered scaled.
-  The child's yield policy is consulted; a parse-time consistency check
-  verifies parent request against child yield.
-- Grocery resolution is recursive with a cycle guard (cake → frosting → cake
-  crumbs → cake is legal provenance, not an infinite traversal).
-- Node duration = the child's critical path, so collapsed scheduling still
-  works.
-- **Multi-output children:** the child declares its exports in binding order
-  via `>> makes: _stock, _meat` (also the display order), and the parent
-  binds positionally with its own names — `:use @{roast chicken|1 batch|from
-  recipes/roast-chicken} => _stock + _meat.` A single-terminal child needs
-  no `makes:` (its only terminal is the implicit export). A multi-terminal
-  child without one still parses and renders, but a parent reference errors
-  loudly. Amounts scale the whole child.
-
-## Portioning: yield vs servings
-
-- **Yield** = terminal multiplicity. "Makes 12 croissants" is simply
-  `=> _{croissant|12}`.
-- **Servings** = `>> servings`. Scaling keys on it.
-- They diverge — a curry is one pot serving four — and that is fine: servings
-  is the baseline, multiplicity is a display fact.
-- **Display rule:** "Serves N" always renders, from metadata. "Makes …"
-  renders when terminal multiplicity is greater than one, joining terminals
-  with "and" — a one-pot curry correctly shows only "serves 4."
-- **Scaling:** `>> yield-scales: count | size`. `count` (the default when
-  absent) multiplies yield by the scale factor, rounded to whole, never below
-  one — 12 buns become 18; one loaf becomes two, and paired with a sized
-  tool the scaler can say "you now need 2 pans." `size` fixes the count and
-  lets each item absorb the scale — the rare "one bigger celebration cake."
-
-## Repetition
-
-No repeat construct. The survey of real cooking:
-
-- **Transformative cycles** cap at ~6 (puff pastry turns; double folds exist
-  to halve the count). Pasta-roller passes look like repetition but are not —
-  the setting changes each pass.
-- **Accumulation** (crêpes, cookie scoops, dumplings) is one step in the
-  recipe's own mind, and multiplicity already covers it:
-
-```
-:cook _batter one ladle at a time in #{crepe pan} until the batter runs out => _{crepes|20}.
-```
-
-The author picks per case — trivial repeats collapse to one step with the loop
-in a note (`:fold _dough four times, 30 minutes apart.`), meaningful cycles
-expand because cook-mode wants real cards and clocks. Typing tedium belongs to
-an editor macro that expands `×3` on save, not to the grammar.
-
-## Timing, doneness, anchors
-
-- Durations are time-classified fields on actions. Fuzzy durations ("overnight")
-  are notes; the fuzzy-duration lexicon channel maps them (overnight ≈ 8–12 h)
-  so cook-mode still gets timers.
-- Doneness stays folk, but the frame is lifted: the doneness-markers channel
-  recognizes "until X" spans and attaches them to the step as a typed field,
-  without interpreting X. "Until doubled" becomes a distinct card element
-  and a search target; the contents stay folklore. One sub-case is
-  machine-readable for free: a span containing a quantity ("until 165F
-  internal") parses via the ordinary quantity grammar — probe-thermometer
-  alarms, done-prediction against the timer. Zero new syntax; the braced form
-  already carried conditions (`:{rest|doubled}` — non-quantity `|` fields on
-  actions are conditions).
-- Anchors ("the night before", "start the rice when the curry first simmers")
-  stay prose hints. The DAG plus durations does the scheduling.
-
 ## Output styles
 
 Every style is a projection of four channels — quantities, procedure prose,
@@ -664,6 +647,25 @@ fields — and HTML is the first target: an unstyled fragment with stable
 `culina-*` classes, so collections theme with their own CSS and other targets
 (Hugo markdown, cook-mode) consume the same model without re-deriving recipe
 semantics.
+
+## Repetition
+
+No repeat construct. The survey of real cooking:
+
+- **Transformative cycles** cap at ~6 (puff pastry turns; double folds exist
+  to halve the count). Pasta-roller passes look like repetition but are not —
+  the setting changes each pass.
+- **Accumulation** (crêpes, cookie scoops, dumplings) is one step in the
+  recipe's own mind, and multiplicity already covers it:
+
+```
+:cook _batter one ladle at a time in #{crepe pan} until the batter runs out => _{crepes|20}.
+```
+
+The author picks per case — trivial repeats collapse to one step with the loop
+in a note (`:fold _dough four times, 30 minutes apart.`), meaningful cycles
+expand because cook-mode wants real cards and clocks. Typing tedium belongs to
+an editor macro that expands `×3` on save, not to the grammar.
 
 ## Worked examples
 
@@ -776,3 +778,15 @@ two-track join at serve.
   consume an unspecified subset of an existing group (the sacrifice
   pattern: "fry one spring roll first to test the oil"). If it ever fires,
   the natural syntax is consumption-side `|n` — "n unspecified members."
+
+Specced, not yet built:
+
+- Scaling engine arithmetic — exact summing across units, rationals for
+  fraction-exact results, pan-bound warnings.
+- Sub-recipe resolution across files — the parser validates single-file DAGs;
+  `from <path>` is a provenance note until the resolver ships.
+- Per-language cores beyond English — the channel schema is stable; the
+  lexicon files don't exist yet.
+- WASM target — compile culina-core to wasm32 for in-browser validation,
+  live editing, and cook-mode UI; the parser is pure computation, the
+  fs/time calls need `cfg`-gating.

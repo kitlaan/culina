@@ -40,7 +40,9 @@ Vagueness is a feature: "1 medium onion" stays a note; "110 g" is an
 amount that scales. The parser never invents precision the author does not
 have.
 
-## Usage
+## Tools
+
+### culinafmt — the formatter
 
 ```
 cargo build
@@ -59,11 +61,47 @@ With files: rewrite each in place when its form differs.
 With no files: read stdin, print canonical text to stdout (no stamping).
 ```
 
-Authors choose their own line breaks; culinafmt never wraps and normalizes
-the continuation indent. Files carry `>> modified:` — stamped only when a
-run changes the file, so re-running never dirties anything. Unknown
-metadata keys warn and pass through; malformed ones fail loudly with the
-offending line rendered.
+### culina-site — the static site generator
+
+```
+./target/debug/culina-site --in recipes/ --out public/
+```
+
+Walks a directory of `.culina` files and emits flat HTML pages, an index,
+and CSS. Collection policy comes from a `culina.toml` at the input root
+(`[site]` title, description; `[lexicon]` overlay path); a `culina.css` at
+the root replaces the built-in default stylesheet. Broken recipes fail
+the build. A `static/` directory is copied verbatim.
+
+## Theming
+
+The HTML culina-site emits is semantic and unstyled, with stable
+`culina-*` classes. Restyling a recipe card means writing CSS against
+those classes — no HTML changes.
+
+The renderer carries data on the elements it emits, as attributes:
+
+| Attribute | On | Carries |
+|---|---|---|
+| `data-amounts` | ingredient `<span>` | the quantities as written |
+| `data-state` | tool `<span>` | tool state — word or magnitude |
+| `data-duration` | step `<li>` | the action's time field |
+| `data-produces` | step `<li>` | what the step creates (`_name`, joined) |
+| `data-cuisine` | the `<article>` | the `>> cuisine` value |
+
+These are the theming API. A stylesheet decides whether the reader sees
+the data — for example, inline measurements in the step prose:
+
+```css
+.culina-ref-ingredient[data-amounts]::after {
+  content: " (" attr(data-amounts) ")";
+  font-style: italic;
+}
+```
+
+That's the whole feature — the renderer carries data, the target decides
+presentation. Five hooks, five CSS experiments (traditional card, inline
+measurements, margin rail, parallel tracks, cook mode), zero HTML changes.
 
 ## Repository layout
 
@@ -71,9 +109,10 @@ This repo is a spec and its reference implementation in one tree:
 
 - **`design.md`** — the specification. Grammar, type system, DAG semantics,
   metadata registry, lexicons. Normative.
-- **`crates/culina-core`** — parser, validator, and canonical printer.
-  `parse → validate → print` round-trips byte-identically.
-- **`crates/culinafmt`** — the CLI.
+- **`crates/culina-core`** — parser, validator, canonical printer, and the
+  card model that renderers consume.
+- **`crates/culinafmt`** — the formatter CLI.
+- **`crates/culina-site`** — the static site generator CLI.
 - **`crates/culina-core/tests/fixtures/`** — the two stress fixtures
   (croissants, red curry). They are conformance tests and are
   byte-canonical: `culinafmt` is a no-op on both.
@@ -86,13 +125,13 @@ This repo is a spec and its reference implementation in one tree:
 
 Implemented: block and inline grammar, the field grammar (quantities,
 equivalency, approx prefixes, the `%` escape), DAG validation with honest
-thread errors, the formatter, lexicons with the full resolution order, and
-the metadata key registry.
+thread errors, the formatter, lexicons with the full resolution order,
+the metadata key registry, the render pipeline (Document → CardModel →
+HTML with schema.org JSON-LD), and culina-site.
 
-Specced in `design.md`, not yet built: renderers (traditional card, the
-Cooking For Engineers grid, cook-mode), the scaling engine, sub-recipe
-resolution across files, a WASM target, and per-language cores beyond
-English.
+Specced in `design.md`, not yet built: the scaling engine's exact
+arithmetic, sub-recipe resolution across files, a WASM target, and
+per-language cores beyond English.
 
 ## Origins
 

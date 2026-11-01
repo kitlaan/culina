@@ -64,6 +64,12 @@ sections with the literal words "Why:" or "What:".
 
 ## Things that bit us
 
+- **The brace rule** — multiword tag names need braces (`_{fried paste}`,
+  not `_fried paste`), and this mistake has been made three separate times
+  in three different sigils (`#{parchment}`, `@{baguette}`, `_fried
+  paste`). The scanner silently parses the bare single-word prefix and
+  the rest becomes prose. When a rendered step reads oddly ("about 3 min
+  paste."), check the braces first.
 - The entity-decode channel: tool parameters that contain `&` or
   `<` arrive decoded. Build HTML entities from `char::from_u32(0x26)`
   at runtime.

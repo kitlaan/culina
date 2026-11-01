@@ -19,8 +19,8 @@
 
 # Curry
 
-:fry _paste in @{neutral oil|2 tbsp} in #{wok|medium heat} until darkened and fragrant, about 3 min => _fried paste.
-:{fry|3 min} _chicken in _fried paste until sealed outside => _curry.
+:fry _paste in @{neutral oil|2 tbsp} in #{wok|medium heat} until darkened and fragrant, about 3 min => _{fried paste}.
+:{fry|3 min} _chicken in _{fried paste} until sealed outside => _curry.
 :stir @{coconut milk|2 cans} into _curry.
 :{simmer|7 min} _curry until the sauce thickens slightly.
 :add @{green beans|150 g|trimmed} to _curry.

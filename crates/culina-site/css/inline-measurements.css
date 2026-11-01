@@ -1,0 +1,183 @@
+/* Inline measurements — the classic card plus amounts and tool states
+   shown in the step prose. Every ingredient ref shows its quantities,
+   every tool ref shows its state: "wok (medium heat)".
+
+   Same HTML as the default; the only difference is the two ::after
+   rules at the bottom. Drop in as your collection's culina.css. */
+
+:root {
+  --paper: #fffdf6;
+  --ink: #2b2419;
+  --faded: #8a7c5f;
+  --accent: #8c2f18;
+  --rule: #b9a983;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 32px 16px;
+  background: #d8cdb4;
+  color: var(--ink);
+  font: 17px/1.7 'Iowan Old Style', 'Palatino Linotype', Charter, Georgia, serif;
+}
+
+article.culina-recipe {
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  outline: 3px double var(--rule);
+  outline-offset: -10px;
+  padding: 48px 44px 40px;
+  box-shadow: 4px 5px 0 rgba(60, 48, 20, 0.18);
+}
+
+h1.culina-title {
+  margin: 0 0 4px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+p.culina-serves {
+  margin: 0 0 12px;
+  text-align: center;
+  color: var(--faded);
+  font-style: italic;
+}
+
+p.culina-summary {
+  margin: 0 auto 14px;
+  max-width: 46ch;
+  text-align: center;
+  color: var(--faded);
+  font-style: italic;
+}
+
+dl.culina-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  margin: 0 auto 22px;
+  text-align: center;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 18px;
+}
+
+.culina-meta dt { color: var(--faded); font-variant: small-caps; }
+.culina-meta dt::after { content: ":"; }
+.culina-meta dd { margin: 0; }
+.culina-meta .culina-meta-value { font-style: italic; white-space: nowrap; }
+
+/* "Ingredients" heading, injected by CSS — the HTML stays semantic. */
+ul.culina-ingredients { position: relative; margin: 26px 0 30px; padding: 0; list-style: none; }
+ul.culina-ingredients::before {
+  content: "Ingredients";
+  display: block;
+  text-align: center;
+  font-variant: small-caps;
+  letter-spacing: 0.12em;
+  margin-bottom: 12px;
+}
+
+li.culina-ingredient {
+  display: flex;
+  align-items: baseline;
+  margin: 6px 0;
+}
+
+/* The dotted leader: the name is a flex container whose ::after stretches
+   to fill the gap before the amounts. (v1 used width:100% inside a nowrap
+   span — a stub, not a leader.) */
+.culina-ing-name {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+}
+.culina-ing-name::after {
+  content: "";
+  flex: 1 0 1.5em;
+  border-bottom: 1px dotted var(--faded);
+  margin: 0 6px 0.25em;
+}
+.culina-ing-amounts { flex: 0 0 auto; text-align: right; color: var(--accent); }
+.culina-ing-notes { flex: 0 1 auto; color: var(--faded); font-style: italic; font-size: 0.92em; }
+li.culina-ingredient .culina-ing-notes { margin-left: 8px; }
+
+/* Narrow screens: stack instead of leaders. */
+@media (max-width: 520px) {
+  li.culina-ingredient { display: block; }
+  .culina-ing-name::after { display: none; }
+  .culina-ing-amounts { display: block; }
+  li.culina-ingredient .culina-ing-notes { display: block; margin: 0; }
+}
+
+h3.culina-section {
+  text-align: center;
+  font-variant: small-caps;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  margin: 30px 0 10px;
+}
+h3.culina-section::before { content: "~ "; color: var(--faded); }
+h3.culina-section::after  { content: " ~"; color: var(--faded); }
+
+ol.culina-steps { padding-left: 26px; margin: 0; }
+li.culina-step { margin: 12px 0; }
+li.culina-step::marker { color: var(--accent); font-weight: 600; }
+
+/* Recipe cards get printed. Drop the theater, keep the card. */
+@media print {
+  body { background: #fff; padding: 0; }
+  article.culina-recipe {
+    box-shadow: none;
+    outline: none;
+    border: none;
+    max-width: none;
+    padding: 0;
+  }
+  li.culina-step { break-inside: avoid; }
+  .culina-photo { break-inside: avoid; }
+}
+
+.culina-ref { font-weight: 600; }
+
+/* Optional ingredients noted with a lighter hand. */
+/* Optional ingredients: the name is the anchor for the leader, so the
+   "(optional)" tag rides the amounts span instead — keeps the dotted
+   rule intact. */
+li.culina-optional .culina-ing-name { font-weight: 400; color: var(--faded); }
+li.culina-optional .culina-ing-amounts::after { content: " (optional)"; font-style: italic; color: var(--faded); }
+
+/* The index page keeps the same card feel. */
+header.culina-site-header { max-width: 640px; margin: 0 auto; text-align: center; }
+header.culina-site-header h1 { font-weight: 500; letter-spacing: 0.06em; }
+ul.culina-recipe-index { list-style: none; max-width: 640px; margin: 8px auto; padding: 0; }
+li.culina-recipe-index-item { padding: 8px 0; text-align: center; }
+li.culina-recipe-index-item a { color: var(--ink); text-decoration: none; font-weight: 600; }
+.culina-recipe-index-summary { display: block; color: var(--faded); font-style: italic; }
+
+/* ------------------------------------------------------------------
+   The inline-measurement rules - the whole experiment. The renderer
+   carried amounts and states as data attributes; CSS decides whether
+   the reader sees them in the steps at all.
+   ------------------------------------------------------------------ */
+
+.culina-ref-ingredient[data-amounts]::after {
+  content: " (" attr(data-amounts) ")";
+  color: var(--accent);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.culina-ref-tool[data-state]::after {
+  content: " (" attr(data-state) ")";
+  color: var(--accent);
+  font-weight: 400;
+  font-style: italic;
+}

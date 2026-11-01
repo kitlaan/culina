@@ -790,3 +790,10 @@ Specced, not yet built:
 - WASM target — compile culina-core to wasm32 for in-browser validation,
   live editing, and cook-mode UI; the parser is pure computation, the
   fs/time calls need `cfg`-gating.
+- Cook-mode UI — the CSS experiments proved the display layer (snap cards,
+  `data-duration` timer chips); running timers, step progress, and
+  interaction design need JavaScript, which needs the WASM target.
+- The true CfE grid — the CSS experiments proved the data is there
+  (step→ingredient and step→duration edges, thread lifetimes); the grid
+  needs its own HTML emission from the CardModel, not a CSS
+  approximation of the prose fragment.

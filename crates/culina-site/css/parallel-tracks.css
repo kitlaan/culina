@@ -1,0 +1,117 @@
+/* Parallel tracks — CSS multi-columns turn sections into side-by-side
+   swimlanes. The red curry's Marinate/Paste/Curry/Rice parallelism
+   becomes visible at a glance. Ingredients multi-column too. Drop in
+   as your collection's culina.css. */
+
+:root {
+  --paper: #fffdf6;
+  --ink: #2b2419;
+  --faded: #8a7c5f;
+  --accent: #8c2f18;
+  --rule: #b9a983;
+  --track-alt: #f4eedd;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 32px 16px;
+  background: #d8cdb4;
+  color: var(--ink);
+  font: 16px/1.65 'Iowan Old Style', 'Palatino Linotype', Charter, Georgia, serif;
+}
+
+article.culina-recipe {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  outline: 3px double var(--rule);
+  outline-offset: -10px;
+  padding: 44px 40px 36px;
+  box-shadow: 4px 5px 0 rgba(60, 48, 20, 0.18);
+}
+
+h1.culina-title { margin: 0 0 4px; text-align: center; font-size: 28px; font-weight: 500; letter-spacing: 0.06em; }
+p.culina-serves { margin: 0 0 10px; text-align: center; color: var(--faded); font-style: italic; }
+p.culina-summary { margin: 0 auto 12px; max-width: 46ch; text-align: center; color: var(--faded); font-style: italic; }
+
+dl.culina-meta {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px;
+  margin: 0 auto 20px; text-align: center;
+  border-bottom: 1px solid var(--rule); padding-bottom: 16px;
+}
+.culina-meta dt { color: var(--faded); font-variant: small-caps; }
+.culina-meta dt::after { content: ":"; }
+.culina-meta dd { margin: 0; font-style: italic; }
+
+/* Ingredients: multi-columned like the steps — the shared mise. */
+ul.culina-ingredients {
+  position: relative; margin: 20px 0 26px; padding: 0; list-style: none;
+  columns: 3 200px; column-gap: 24px;
+}
+ul.culina-ingredients::before {
+  content: "Mise en place";
+  display: block; text-align: center;
+  font-variant: small-caps; letter-spacing: 0.12em; margin-bottom: 10px;
+  column-span: all;
+}
+li.culina-ingredient { margin: 3px 0; break-inside: avoid; }
+.culina-ing-name { font-weight: 600; }
+.culina-ing-name::after { content: ":"; }
+.culina-ing-amounts { color: var(--accent); }
+.culina-ing-notes { color: var(--faded); font-style: italic; font-size: 0.92em; }
+li.culina-optional .culina-ing-name { font-weight: 400; color: var(--faded); }
+li.culina-optional .culina-ing-amounts::after { content: " (optional)"; font-style: italic; color: var(--faded); }
+
+/* THE TRACKS: the method flows into as many columns as the width allows;
+   each section header + its steps break together, so a section reads as
+   one swimlane. Sections in source order = the author's flow order. */
+div.culina-method {
+  columns: 3 240px;
+  column-gap: 30px;
+  column-rule: 1px solid var(--rule);
+}
+div.culina-method h3.culina-section {
+  break-after: avoid;
+  margin: 0 0 8px;
+  font-variant: small-caps;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 4px;
+}
+div.culina-method h3.culina-section:first-of-type { break-before: auto; }
+ol.culina-steps { break-inside: avoid-column; padding-left: 18px; margin: 0 0 14px; }
+li.culina-step { margin: 10px 0; font-size: 0.95em; }
+li.culina-step::marker { color: var(--accent); font-weight: 600; }
+
+.culina-ref { font-weight: 600; }
+.culina-ref-ingredient[data-amounts]::after {
+  content: " (" attr(data-amounts) ")";
+  color: var(--accent); font-weight: 400; font-style: italic;
+}
+.culina-ref-tool[data-state]::after {
+  content: " (" attr(data-state) ")";
+  color: var(--accent); font-weight: 400; font-style: italic;
+}
+
+@media (max-width: 700px) {
+  div.culina-method { columns: 1; }
+}
+
+@media print {
+  body { background: #fff; padding: 0; }
+  article.culina-recipe { box-shadow: none; outline: none; border: none; max-width: none; padding: 0; }
+  div.culina-method { columns: 2; }
+  li.culina-step { break-inside: avoid; }
+}
+
+header.culina-site-header { max-width: 1000px; margin: 0 auto; text-align: center; }
+header.culina-site-header h1 { font-weight: 500; letter-spacing: 0.06em; }
+ul.culina-recipe-index { list-style: none; max-width: 1000px; margin: 8px auto; padding: 0; }
+li.culina-recipe-index-item { padding: 8px 0; text-align: center; }
+li.culina-recipe-index-item a { color: var(--ink); text-decoration: none; font-weight: 600; }
+.culina-recipe-index-summary { display: block; color: var(--faded); font-style: italic; }

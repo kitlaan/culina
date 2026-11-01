@@ -1,0 +1,238 @@
+/* The 4x6 index card — screen shows a recipe-box card (cream stock,
+   ruled header, cuisine-colored tab via data-cuisine). Print mode uses
+   @page 4in 6in so printing on cardstock produces a filed card.
+
+   The density test: everyday recipes fit one card; complex ones
+   spill to card two. That's how real recipe boxes work. Drop in as
+   your collection's culina.css. */
+
+/* ---- Screen: the card on the desk ---- */
+
+:root {
+  --card: #fffcf0;
+  --ink: #1a1814;
+  --rule: #c4846a;
+  --accent: #8c2f18;
+  --cuisine: #c4846a;  /* default tab; overridden per data-cuisine */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 40px 20px;
+  background: #7a6b55;  /* the recipe-box desk */
+  color: var(--ink);
+  font: 14px/1.45 'Iowan Old Style', 'Palatino Linotype', Charter, Georgia, serif;
+}
+
+article.culina-recipe {
+  width: 4in;
+  min-height: 6in;
+  margin: 0 auto;
+  background: var(--card);
+  padding: 0.3in 0.35in 0.25in;
+  box-shadow: 2px 3px 8px rgba(0,0,0,0.3);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* The ruled header line — the red line on real index cards. */
+article.culina-recipe::before {
+  content: "";
+  position: absolute;
+  top: 0.55in;
+  left: 0; right: 0;
+  height: 1.5px;
+  background: var(--rule);
+  opacity: 0.5;
+}
+
+/* The colored tab, top-right — color-coded by cuisine. */
+article.culina-recipe::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0;
+  width: 0.9in;
+  height: 0.28in;
+  background: var(--cuisine);
+  clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
+  opacity: 0.85;
+}
+
+/* Tab colors per cuisine — the data-cuisine hook at work. */
+article[data-cuisine="Thai"]     { --cuisine: #b8382e; }
+article[data-cuisine="Italian"]  { --cuisine: #3a7a3a; }
+article[data-cuisine="French"]   { --cuisine: #2a5a8a; }
+article[data-cuisine="Indian"]   { --cuisine: #c4781e; }
+article[data-cuisine="Mexican"]  { --cuisine: #a4522a; }
+article[data-cuisine="Chinese"]  { --cuisine: #8a2a4a; }
+
+h1.culina-title {
+  margin: 0 0 2pt;
+  font-size: 14pt;
+  font-weight: 700;
+  line-height: 1.15;
+  padding-right: 0.8in;  /* clear of the tab */
+}
+
+p.culina-serves {
+  margin: 0;
+  font-size: 8pt;
+  color: var(--accent);
+  font-style: italic;
+}
+
+p.culina-summary { display: none; }  /* too precious for the card */
+
+dl.culina-meta {
+  display: none;  /* the card carries what matters at the stove */
+}
+
+/* Ingredients: compact paragraph style — the card saves vertical space. */
+ul.culina-ingredients {
+  margin: 8pt 0 6pt;
+  padding: 0;
+  list-style: none;
+  font-size: 8pt;
+  line-height: 1.5;
+  columns: 2;
+  column-gap: 10pt;
+}
+
+ul.culina-ingredients::before {
+  content: "";
+  display: block;
+  border-top: 0.5pt solid var(--ink);
+  margin-bottom: 3pt;
+  column-span: all;
+}
+
+li.culina-ingredient {
+  break-inside: avoid;
+  margin: 0;
+  text-indent: -6pt;
+  padding-left: 6pt;
+}
+
+.culina-ing-name { font-weight: 600; }
+.culina-ing-name::after { content: ": "; font-weight: 400; }
+.culina-ing-amounts { color: var(--accent); }
+.culina-ing-notes { color: #666; font-style: italic; }
+.culina-optional .culina-ing-name::after { content: " (opt): "; font-weight: 400; }
+
+/* Sections: tiny small-caps, no ornament — the card is a working document. */
+h3.culina-section {
+  margin: 6pt 0 2pt;
+  font-size: 8.5pt;
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border-bottom: 0.5pt solid #ccc;
+}
+
+/* Steps: numbered, compact, 9pt — readable at arm's length from the stove. */
+ol.culina-steps {
+  margin: 0;
+  padding-left: 16pt;
+  font-size: 9pt;
+  line-height: 1.35;
+}
+
+li.culina-step {
+  margin: 2.5pt 0;
+  break-inside: avoid;
+}
+
+li.culina-step::marker {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 8pt;
+}
+
+.culina-ref { font-weight: 600; }
+
+/* Step durations show inline on the card — the cook needs them visible. */
+li.culina-step[data-duration]::after {
+  content: " (" attr(data-duration) ")";
+  color: var(--accent);
+  font-weight: 400;
+  font-style: italic;
+  font-size: 8pt;
+}
+
+/* The JSON-LD script is invisible by nature; nothing to do. */
+
+/* The site index in card-box style: a simple list. */
+header.culina-site-header {
+  max-width: 4in;
+  margin: 0 auto 20px;
+  text-align: center;
+  color: var(--card);
+}
+header.culina-site-header h1 { font-size: 16pt; font-weight: 500; color: var(--card); }
+ul.culina-recipe-index {
+  list-style: none;
+  max-width: 4in;
+  margin: 0 auto;
+  padding: 0;
+}
+li.culina-recipe-index-item {
+  background: var(--card);
+  margin: 8px 0;
+  padding: 10px 14px;
+  box-shadow: 1px 2px 4px rgba(0,0,0,0.25);
+}
+li.culina-recipe-index-item a { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 12pt; }
+.culina-recipe-index-summary { display: block; font-size: 8.5pt; color: #666; font-style: italic; }
+
+/* ---- Print: actual 4x6 cardstock ---- */
+
+@media print {
+  /* One card per sheet of 4x6 cardstock. */
+  @page {
+    size: 4in 6in;
+    margin: 0.2in;
+  }
+
+  body {
+    background: none;
+    padding: 0;
+    margin: 0;
+    font-size: 9pt;
+  }
+
+  article.culina-recipe {
+    width: auto;
+    min-height: auto;  /* let the content determine the height; the page is 4x6 */
+    box-shadow: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* The ruled line and tab still print — they define the card. */
+  article.culina-recipe::before {
+    top: 0.45in;
+  }
+
+  /* Tighten everything for the physical constraint. */
+  h1.culina-title { font-size: 13pt; }
+  ul.culina-ingredients { font-size: 7.5pt; }
+  ol.culina-steps { font-size: 8pt; line-height: 1.3; }
+  li.culina-step { margin: 1.5pt 0; }
+
+  /* When a recipe runs past one card, break cleanly between steps. */
+  li.culina-step { break-inside: avoid; }
+
+  /* The index prints as a plain checklist of card titles. */
+  header.culina-site-header { display: none; }
+  ul.culina-recipe-index { max-width: none; }
+  li.culina-recipe-index-item {
+    box-shadow: none;
+    border-bottom: 0.5pt solid #999;
+    page-break-inside: avoid;
+  }
+}

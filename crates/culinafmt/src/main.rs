@@ -175,6 +175,28 @@ fn unified_diff(old: &str, new: &str, name: &str) -> String {
     let b = drop_last_empty(new.split('\n').collect::<Vec<_>>());
     let (n, m) = (a.len(), b.len());
 
+    let mut out = format!("--- {name}\n+++ {name}\n");
+
+    // The LCS table is O(n·m) memory; recipes are small, but formatters get
+    // pointed at big things. Above the threshold, fall back to one
+    // whole-file hunk — correct, not minimal.
+    const MAX_LCS_CELLS: usize = 4_000_000;
+    if n.saturating_mul(m) > MAX_LCS_CELLS {
+        let _ = &mut out;
+        out.push_str(&format!("@@ -1,{n} +1,{m} @@\n"));
+        for line in &a {
+            out.push('-');
+            out.push_str(line.trim_end_matches('\r'));
+            out.push('\n');
+        }
+        for line in &b {
+            out.push('+');
+            out.push_str(line);
+            out.push('\n');
+        }
+        return out;
+    }
+
     let mut lcs = vec![vec![0usize; m + 1]; n + 1];
     for i in (0..n).rev() {
         for j in (0..m).rev() {
@@ -214,13 +236,13 @@ fn unified_diff(old: &str, new: &str, name: &str) -> String {
     let mut include = vec![false; ops.len()];
     for (idx, (op, _)) in ops.iter().enumerate() {
         if *op != Op::Keep {
-            for k in idx.saturating_sub(CONTEXT)..=(idx + CONTEXT).min(ops.len() - 1) {
-                include[k] = true;
+            let hi = (idx + CONTEXT).min(ops.len() - 1);
+            for slot in &mut include[idx.saturating_sub(CONTEXT)..=hi] {
+                *slot = true;
             }
         }
     }
 
-    let mut out = format!("--- {name}\n+++ {name}\n");
     let mut idx = 0;
     while idx < ops.len() {
         if !include[idx] {
@@ -253,7 +275,9 @@ fn unified_diff(old: &str, new: &str, name: &str) -> String {
                 Op::Add => '+',
             };
             out.push(prefix);
-            out.push_str(line);
+            // Trim the \r for display only — comparison above stays on raw
+            // lines so CRLF inputs diff honestly.
+            out.push_str(line.trim_end_matches('\r'));
             out.push('\n');
         }
     }

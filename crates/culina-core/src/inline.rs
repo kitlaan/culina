@@ -77,8 +77,13 @@ fn span_from_word(text: &str, word: &str) -> Option<String> {
     let bytes = text.as_bytes();
     let w = word.as_bytes();
     let is_sep = |b: u8| b.is_ascii_whitespace() || b".,;:!?()[]\"'".contains(&b);
-    let mut i = 0;
-    while i + w.len() <= bytes.len() {
+    // Char-boundary positions only: UTF-8 is self-synchronizing, so a byte
+    // match can never start mid-character — and slicing at a boundary keeps
+    // the span safe for non-ASCII markers.
+    for (i, _) in text.char_indices() {
+        if i + w.len() > bytes.len() {
+            return None;
+        }
         if &bytes[i..i + w.len()] == w {
             let before_ok = i == 0 || is_sep(bytes[i - 1]);
             let after = i + w.len();
@@ -87,9 +92,6 @@ fn span_from_word(text: &str, word: &str) -> Option<String> {
                 return Some(text[i..].trim_end().to_string());
             }
         }
-        // Byte-wise scan is safe: ASCII marker bytes never appear inside a
-        // UTF-8 continuation sequence.
-        i += 1;
     }
     None
 }

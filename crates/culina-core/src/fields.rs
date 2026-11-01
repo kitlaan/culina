@@ -128,7 +128,7 @@ fn approx_prefix_len(lex: &Lexicon, chars: &[char]) -> Option<usize> {
     for w in &lex.approx.words {
         if word.starts_with(w.as_str()) {
             let len = w.chars().count();
-            if best.map_or(true, |b| len > b) {
+            if best.is_none_or(|b| len > b) {
                 best = Some(len);
             }
         }
@@ -244,9 +244,8 @@ fn parse_unit(lex: &Lexicon, chars: &[char], start: usize) -> Option<(Option<Uni
         if starts_with_at(chars, j, spelling) {
             let end = j + spelling.chars().count();
             let boundary = end == chars.len() || chars[end].is_whitespace();
-            let longer = best.map_or(true, |b| {
-                spelling.chars().count() > spellings[b].0.chars().count()
-            });
+            let longer =
+                best.is_none_or(|b| spelling.chars().count() > spellings[b].0.chars().count());
             if boundary && longer {
                 best = Some(idx);
             }

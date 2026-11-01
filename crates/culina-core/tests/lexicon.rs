@@ -169,6 +169,23 @@ fn doneness_lift_attaches_prose_spans() {
 }
 
 #[test]
+fn non_ascii_doneness_marker_does_not_panic() {
+    // A Thai marker must lift a span without slicing a char boundary.
+    let lex = Lexicon::from_toml(
+        r#"
+[doneness]
+words = ["จน"]
+"#,
+    )
+    .expect("overlay parses");
+    let doc = culina_core::parse::parse_with(":simmer _soup, จน hot.\n", &lex).expect("parse");
+    match &doc.blocks[0] {
+        Block::Step(s) => assert_eq!(s.doneness, vec!["จน hot.".to_string()]),
+        other => panic!("expected a step, got {other:?}"),
+    }
+}
+
+#[test]
 fn collection_overlay_flows_through_canonicalize() {
     let overlay = Lexicon::from_toml(
         r#"

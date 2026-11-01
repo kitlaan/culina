@@ -119,3 +119,43 @@ fn version_flag() {
     assert_eq!(code, Some(0));
     assert!(out.starts_with("culinafmt 0."), "{out}");
 }
+
+#[test]
+fn lexicon_flag_applies_a_collection_overlay() {
+    // The embedded core works as a valid (no-op) overlay — same shape,
+    // same parse.
+    let core =
+        std::fs::read_to_string("../../crates/culina-core/lexicons/lexicon.en.toml").unwrap();
+    let overlay = tmp("overlay", &core);
+    // Scruffy (extra blanks) so the run has something to fix and stamp.
+    let recipe = tmp(
+        "overlay-recipe",
+        ">> title: T\n>> servings: 1\n\n\n\n:mix => _dough\n",
+    );
+    let (code, _, err) = run(
+        &[
+            "--lexicon",
+            overlay.to_str().unwrap(),
+            recipe.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert_eq!(code, Some(0), "overlay path must not fail: {err}");
+    assert!(std::fs::read_to_string(&recipe)
+        .unwrap()
+        .contains(">> modified: "));
+}
+
+#[test]
+fn lexicon_flag_missing_file_fails_loudly() {
+    let (code, _, err) = run(&["--lexicon", "/nonexistent/lex.toml"], None);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("lexicon"), "{err}");
+}
+
+#[test]
+fn lexicon_flag_needs_a_path() {
+    let (code, _, err) = run(&["--lexicon"], None);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("needs a path"), "{err}");
+}

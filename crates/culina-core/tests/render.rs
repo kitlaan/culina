@@ -1,9 +1,10 @@
 //! Renderer conformance: the fixtures project into cards with stable
 //! classes, aggregated ingredients, authored step prose, and the promised
-//! schema.org JSON-LD.
+//! schema.org JSON-LD. Step prose carries refs with `data-amounts` and
+//! `data-state` — the hooks CSS experiments hang from.
 
 use culina_core::fmt::prepare;
-use culina_core::render::{card, html_fragment, jsonld};
+use culina_core::render::{card, html_fragment, jsonld, RefKind};
 
 const CROISSANT: &str = include_str!("fixtures/croissant.culina");
 const CURRY: &str = include_str!("fixtures/red-curry.culina");
@@ -15,23 +16,40 @@ fn fragment(src: &str) -> String {
 
 #[test]
 fn fixture_cards_render() {
-    let html = fragment(CROISSANT);
+    let (doc, _, _) = prepare(CROISSANT, None).unwrap();
+    let model = card(&doc);
+    let html = html_fragment(&model);
+
     assert!(html.contains("culina-recipe"), "stable class: {html}");
     assert!(html.contains("culina-title\">Croissants"), "{html}");
     assert!(html.contains("culina-serves\">Serves 12"), "{html}");
     assert!(html.contains("culina-ingredient"), "{html}");
     assert!(html.contains("culina-ing-name\">flour"), "{html}");
-    assert!(html.contains("500 g"), "{html}");
-    // Sections render as headers; step prose strips sigils.
+    assert!(html.contains("culina-ing-amounts\">500 g"), "{html}");
     assert!(html.contains("culina-section\">Lamination"), "{html}");
-    assert!(
-        html.contains("culina-step\">roll dough into an 8x16 in rectangle"),
-        "{html}"
-    );
-    // The production arrow reads as prose.
-    assert!(html.contains("→ sheet"), "{html}");
 
-    let html = fragment(CURRY);
+    // Plain step prose: verb + tags as names, arrow as →.
+    let step = &model.sections[2].1[0];
+    assert!(
+        step.text.contains("roll dough into an 8x16 in rectangle"),
+        "{:?}",
+        step.text
+    );
+    assert!(step.text.ends_with("→ sheet."), "{:?}", step.text);
+
+    // The HTML target wraps refs in spans with values as data attributes.
+    assert!(
+        html.contains("data-amounts=\"500 g\""),
+        "ingredient amounts ride the span: {html}"
+    );
+    assert!(
+        html.contains("culina-ref-thread\">dough<"),
+        "thread refs classed: {html}"
+    );
+
+    let (doc, _, _) = prepare(CURRY, None).unwrap();
+    let model = card(&doc);
+    let html = html_fragment(&model);
     assert!(html.contains("culina-title\">Red curry"), "{html}");
     assert!(html.contains("also known as"), "aka row: {html}");
     assert!(
@@ -42,6 +60,31 @@ fn fixture_cards_render() {
         html.contains("or sweet basil"),
         "alternatives join notes: {html}"
     );
+    assert!(
+        html.contains("data-state=\"medium\""),
+        "tool state rides the span: {html}"
+    );
+}
+
+#[test]
+fn refs_carry_their_values() {
+    let (doc, _, _) = prepare(CROISSANT, None).unwrap();
+    let model = card(&doc);
+    // The mix step's flour ref: ingredient kind, 500 g value.
+    let mix = &model.sections[0].1[0];
+    let flour = mix
+        .segments
+        .iter()
+        .find_map(|s| match s {
+            culina_core::render::SegModel::Ref {
+                kind: RefKind::Ingredient,
+                name,
+                values,
+            } if name == "flour" => Some(values.clone()),
+            _ => None,
+        })
+        .expect("flour ref in the mix step");
+    assert_eq!(flour, vec!["500 g".to_string()]);
 }
 
 #[test]

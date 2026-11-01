@@ -24,9 +24,38 @@ pub struct CardModel {
     /// First (representative) image path, if the recipe has one.
     pub photo: Option<String>,
     /// Section title (`None` for steps before any header) and its steps.
-    pub sections: Vec<(Option<String>, Vec<String>)>,
+    pub sections: Vec<(Option<String>, Vec<StepModel>)>,
     /// Aggregated ingredients: (name, amounts, notes, optional).
     pub ingredients: Vec<Ingredient>,
+}
+
+/// One step: plain prose for text targets, plus the segment structure that
+/// carries a reference's values — the data CSS hooks hang from.
+#[derive(Debug)]
+pub struct StepModel {
+    pub text: String,
+    pub segments: Vec<SegModel>,
+}
+
+#[derive(Debug)]
+pub enum SegModel {
+    Prose(String),
+    Ref {
+        kind: RefKind,
+        name: String,
+        /// Quantity (ingredient) or state (tool) fields, raw — for inline
+        /// display hooks like `data-amounts`.
+        values: Vec<String>,
+    },
+    Arrow,
+    Plus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RefKind {
+    Ingredient,
+    Thread,
+    Tool,
 }
 
 #[derive(Debug)]
@@ -80,7 +109,7 @@ pub fn card(doc: &Document) -> CardModel {
                     .last_mut()
                     .expect("section opened above")
                     .1
-                    .push(step_text(step));
+                    .push(step_model(step));
             }
             _ => {}
         }
@@ -146,24 +175,58 @@ fn collect_ingredients(step: &Step, out: &mut Vec<Ingredient>) {
     }
 }
 
-/// Step prose: the action verb, then authored text verbatim — tags as bare
-/// names (amounts live in the ingredient list), `=>` as "→", `+` as "+".
-fn step_text(step: &Step) -> String {
-    let mut text = String::new();
-    text.push_str(&step.action.verb);
-    let write = |seg: &Seg, text: &mut String| match seg {
-        Seg::Prose(p) => text.push_str(p),
-        Seg::Tag(t) => text.push_str(&t.name),
-        Seg::Plus => text.push('+'),
-        Seg::Arrow => text.push('→'),
+/// One step's segment structure, plus the folded plain text.
+fn step_model(step: &Step) -> StepModel {
+    let mut segments = vec![SegModel::Prose(step.action.verb.clone())];
+    let map = |seg: &Seg, segments: &mut Vec<SegModel>| match seg {
+        Seg::Prose(p) => segments.push(SegModel::Prose(p.clone())),
+        Seg::Tag(t) => segments.push(SegModel::Ref {
+            kind: match t.sigil {
+                Sigil::At => RefKind::Ingredient,
+                Sigil::Hash => RefKind::Tool,
+                Sigil::Underscore => RefKind::Thread,
+            },
+            name: t.name.clone(),
+            values: match t.sigil {
+                // Tool state is whatever the author wrote — magnitude or
+                // word. Ingredient values are amounts only; notes stay in
+                // the ingredient list.
+                Sigil::Hash => t.fields.iter().map(|f| f.raw.clone()).collect(),
+                _ => t
+                    .fields
+                    .iter()
+                    .filter(|f| f.is_quantity())
+                    .map(|f| f.raw.clone())
+                    .collect(),
+            },
+        }),
+        Seg::Plus => segments.push(SegModel::Plus),
+        Seg::Arrow => segments.push(SegModel::Arrow),
     };
     for seg in &step.head {
-        write(seg, &mut text);
+        map(seg, &mut segments);
     }
     for cont in &step.continuations {
-        text.push(' ');
+        segments.push(SegModel::Prose(" ".into()));
         for seg in &cont.segs {
-            write(seg, &mut text);
+            map(seg, &mut segments);
+        }
+    }
+    StepModel {
+        text: fold_text(&segments),
+        segments,
+    }
+}
+
+/// Segments → plain prose: refs as bare names, `=>` as "→", `+` as "+".
+fn fold_text(segments: &[SegModel]) -> String {
+    let mut text = String::new();
+    for seg in segments {
+        match seg {
+            SegModel::Prose(p) => text.push_str(p),
+            SegModel::Ref { name, .. } => text.push_str(name),
+            SegModel::Arrow => text.push('→'),
+            SegModel::Plus => text.push('+'),
         }
     }
     text.trim().to_string()
@@ -196,7 +259,11 @@ pub fn jsonld(card: &CardModel) -> serde_json::Value {
                 .collect::<Vec<_>>()),
         );
     }
-    let steps: Vec<&String> = card.sections.iter().flat_map(|(_, s)| s.iter()).collect();
+    let steps: Vec<&str> = card
+        .sections
+        .iter()
+        .flat_map(|(_, s)| s.iter().map(|m| m.text.as_str()))
+        .collect();
     if !steps.is_empty() {
         obj.insert("recipeInstructions".into(), json!(steps));
     }
@@ -299,7 +366,40 @@ pub fn html_fragment(card: &CardModel) -> String {
             }
             out.push_str("<ol class=\"culina-steps\">\n");
             for step in steps {
-                out.push_str(&format!("<li class=\"culina-step\">{}</li>\n", esc(step)));
+                out.push_str("<li class=\"culina-step\">");
+                for seg in &step.segments {
+                    match seg {
+                        SegModel::Prose(p) => out.push_str(&esc(p)),
+                        SegModel::Ref { kind, name, values } => {
+                            let (class, attr) = match kind {
+                                RefKind::Ingredient => (
+                                    "culina-ref-ingredient",
+                                    if values.is_empty() {
+                                        String::new()
+                                    } else {
+                                        format!(" data-amounts=\"{}\"", esc(&values.join(", ")))
+                                    },
+                                ),
+                                RefKind::Tool => (
+                                    "culina-ref-tool",
+                                    if values.is_empty() {
+                                        String::new()
+                                    } else {
+                                        format!(" data-state=\"{}\"", esc(&values.join(", ")))
+                                    },
+                                ),
+                                RefKind::Thread => ("culina-ref-thread", String::new()),
+                            };
+                            out.push_str(&format!(
+                                "<span class=\"culina-ref {class}\"{attr}>{}</span>",
+                                esc(name)
+                            ));
+                        }
+                        SegModel::Arrow => out.push('→'),
+                        SegModel::Plus => out.push('+'),
+                    }
+                }
+                out.push_str("</li>\n");
             }
             out.push_str("</ol>\n");
         }

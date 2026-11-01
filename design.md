@@ -652,7 +652,7 @@ two-track join at serve.
 
 # Butter block
 
-:pound @{butter|280 g} cold between #{parchment} into an 8-inch square => _{butter block}.
+:pound @{butter|280 g} cold between #parchment into an 8-inch square => _{butter block}.
 :{rest|1 hour} _{butter block} in #{fridge|40F}.
 
 # Lamination
@@ -679,10 +679,10 @@ two-track join at serve.
 
 # Proof and bake
 
-:whisk @{egg|1} with @{milk|1 tbsp} => _egg wash.
-:brush _croissants + _pains with _egg wash, arranged on #{sheet pan|parchment}.
+:whisk @{egg|1} with @{milk|1 tbsp} => _{egg wash}.
+:brush _croissants + _pains with _{egg wash}, arranged on #{sheet pan|parchment}.
 :{proof|2 hours} _croissants + _pains in a warm spot until jiggly and nearly doubled.
-:brush _croissants + _pains with _egg wash again.
+:brush _croissants + _pains with _{egg wash} again.
 :preheat #{oven|425F} during the last 20 min of the proof.
 :{bake|10 min} _croissants + _pains in #oven until the tops set.
 :lower #{oven|375F}.
@@ -710,7 +710,7 @@ two-track join at serve.
 
 :toast @{coriander|1 tsp}, @{white peppercorn|1 tsp} in #{skillet|dry} until fragrant, then cool => _spices.
 :pick @{cilantro|1 bunch} into roots and leaves => _{cilantro roots} + _{cilantro leaves}.
-:pound @{shallot|2|halved}, @{garlic|6 cloves}, @{red chili|4}, @{lemongrass|1 stalk|cored}, @{galangal|1 in|sliced}, _{cilantro roots}, _spices in #{mortar} to a fine paste => _paste.
+:pound @{shallot|2|halved}, @{garlic|6 cloves}, @{red chili|4}, @{lemongrass|1 stalk|cored}, @{galangal|1 in|sliced}, _{cilantro roots}, _spices in #mortar to a fine paste => _paste.
 
 # Curry
 
@@ -725,7 +725,7 @@ two-track join at serve.
 
 # Rice
 
-:rinse @{jasmine rice|300 g} in #{colander} until the water runs clear => _rice.
+:rinse @{jasmine rice|300 g} in #colander until the water runs clear => _rice.
 :{simmer|15 min} _rice with @{water|450 ml} in #{pot|lid on} until the water is absorbed.
   (start this when the curry first simmers)
 

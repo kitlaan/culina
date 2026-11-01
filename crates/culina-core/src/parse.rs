@@ -4,18 +4,14 @@
 //! - a block starting `# ` is a section header
 //! - a block starting `:` is one step
 //! - indented physical lines continue the current step
-//! - a blank line separates blocks
 //!
 //! Lenient input, one output: blocks self-delimit, so missing blank lines
-//! parse fine; the printer always emits exactly one blank between blocks.
+//! parse fine; the printer emits blanks around sections and metadata, and
+//! steps run adjacent.
 
 use crate::ast::{Block, Document, MetaLine};
 use crate::error::{ParseError, Result};
-
-struct StepAcc {
-    head: String,
-    continuations: Vec<String>,
-}
+use crate::inline::{parse_step, StepAcc};
 
 pub fn parse(input: &str) -> Result<Document> {
     let mut blocks: Vec<Block> = Vec::new();
@@ -28,20 +24,20 @@ pub fn parse(input: &str) -> Result<Document> {
         let line_no = idx + 1;
         let line = raw.trim_end_matches('\r');
         if line.trim().is_empty() {
-            flush_step(&mut blocks, &mut open);
+            flush_step(&mut blocks, &mut open)?;
             continue;
         }
 
         // Any leading whitespace marks a continuation, whatever follows it.
         if line.starts_with([' ', '\t']) {
             match open.as_mut() {
-                Some(acc) => acc.continuations.push(line.to_string()),
+                Some(acc) => acc.continuations.push((line_no, line.to_string())),
                 None => return Err(ParseError::ContinuationOutsideStep { line: line_no }),
             }
             continue;
         }
 
-        flush_step(&mut blocks, &mut open);
+        flush_step(&mut blocks, &mut open)?;
 
         if let Some(rest) = line.strip_prefix(">>") {
             let rest = rest.strip_prefix(' ').unwrap_or(rest);
@@ -62,9 +58,16 @@ pub fn parse(input: &str) -> Result<Document> {
                 Some(t) if !t.is_empty() => t.to_string(),
                 _ => return Err(ParseError::SectionMissingSpace { line: line_no }),
             };
-            blocks.push(Block::Section { level: hashes, title });
+            blocks.push(Block::Section {
+                level: hashes,
+                title,
+            });
         } else if line.starts_with(':') {
-            open = Some(StepAcc { head: line.to_string(), continuations: Vec::new() });
+            open = Some(StepAcc {
+                line_no,
+                head: line.to_string(),
+                continuations: Vec::new(),
+            });
         } else {
             return Err(ParseError::StrayLine {
                 line: line_no,
@@ -72,17 +75,21 @@ pub fn parse(input: &str) -> Result<Document> {
             });
         }
     }
-    flush_step(&mut blocks, &mut open);
+    flush_step(&mut blocks, &mut open)?;
 
     Ok(Document { blocks })
 }
 
-fn flush_step(blocks: &mut Vec<Block>, open: &mut Option<StepAcc>) {
+fn flush_step(blocks: &mut Vec<Block>, open: &mut Option<StepAcc>) -> Result<()> {
     if let Some(acc) = open.take() {
-        blocks.push(Block::Step { head: acc.head, continuations: acc.continuations });
+        blocks.push(Block::Step(parse_step(&acc)?));
     }
+    Ok(())
 }
 
 fn first_word(line: &str) -> String {
-    line.split_whitespace().next().unwrap_or_default().to_string()
+    line.split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .to_string()
 }

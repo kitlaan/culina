@@ -9,7 +9,9 @@ fn main() {
 
     let inputs: Vec<(String, String)> = if args.is_empty() {
         let mut buf = String::new();
-        std::io::stdin().read_to_string(&mut buf).expect("read stdin");
+        std::io::stdin()
+            .read_to_string(&mut buf)
+            .expect("read stdin");
         vec![("<stdin>".to_string(), buf)]
     } else {
         args.iter()

@@ -53,7 +53,10 @@ fn blocks_self_delimit_without_blanks() {
     // Lenient input: missing blank lines still parse; the printer adds them.
     let doc = parse(":mix => _dough\n# Bake\n:{bake|10 min} _dough").expect("parse");
     assert_eq!(doc.blocks.len(), 3);
-    assert_eq!(print(&doc), ":mix => _dough\n\n# Bake\n\n:{bake|10 min} _dough\n");
+    assert_eq!(
+        print(&doc),
+        ":mix => _dough\n\n# Bake\n\n:{bake|10 min} _dough\n"
+    );
 }
 
 #[test]
@@ -72,7 +75,10 @@ fn crlf_input_normalizes_to_lf() {
 #[test]
 fn continuation_outside_step_errors() {
     let err = parse("  orphan line").expect_err("must fail");
-    assert!(err.to_string().contains("line 1"), "error should name the line: {err}");
+    assert!(
+        err.to_string().contains("line 1"),
+        "error should name the line: {err}"
+    );
 }
 
 #[test]

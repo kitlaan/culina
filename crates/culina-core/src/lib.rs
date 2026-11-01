@@ -6,6 +6,7 @@
 
 pub mod ast;
 pub mod error;
+pub mod inline;
 pub mod parse;
 pub mod print;
 

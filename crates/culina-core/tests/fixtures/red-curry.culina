@@ -15,7 +15,7 @@
 
 :toast @{coriander|1 tsp}, @{white peppercorn|1 tsp} in #{skillet|dry} until fragrant, then cool => _spices.
 :pick @{cilantro|1 bunch} into roots and leaves => _{cilantro roots} + _{cilantro leaves}.
-:pound @{shallot|2|halved}, @{garlic|6 cloves}, @{red chili|4}, @{lemongrass|1 stalk|cored}, @{galangal|1 in|sliced}, _{cilantro roots}, _spices in #{mortar} to a fine paste => _paste.
+:pound @{shallot|2|halved}, @{garlic|6 cloves}, @{red chili|4}, @{lemongrass|1 stalk|cored}, @{galangal|1 in|sliced}, _{cilantro roots}, _spices in #mortar to a fine paste => _paste.
 
 # Curry
 
@@ -30,7 +30,7 @@
 
 # Rice
 
-:rinse @{jasmine rice|300 g} in #{colander} until the water runs clear => _rice.
+:rinse @{jasmine rice|300 g} in #colander until the water runs clear => _rice.
 :{simmer|15 min} _rice with @{water|450 ml} in #{pot|lid on} until the water is absorbed.
   (start this when the curry first simmers)
 

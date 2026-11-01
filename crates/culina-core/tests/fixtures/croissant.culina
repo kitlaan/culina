@@ -11,7 +11,7 @@
 
 # Butter block
 
-:pound @{butter|280 g} cold between #{parchment} into an 8-inch square => _{butter block}.
+:pound @{butter|280 g} cold between #parchment into an 8-inch square => _{butter block}.
 :{rest|1 hour} _{butter block} in #{fridge|40F}.
 
 # Lamination
@@ -38,10 +38,10 @@
 
 # Proof and bake
 
-:whisk @{egg|1} with @{milk|1 tbsp} => _egg wash.
-:brush _croissants + _pains with _egg wash, arranged on #{sheet pan|parchment}.
+:whisk @{egg|1} with @{milk|1 tbsp} => _{egg wash}.
+:brush _croissants + _pains with _{egg wash}, arranged on #{sheet pan|parchment}.
 :{proof|2 hours} _croissants + _pains in a warm spot until jiggly and nearly doubled.
-:brush _croissants + _pains with _egg wash again.
+:brush _croissants + _pains with _{egg wash} again.
 :preheat #{oven|425F} during the last 20 min of the proof.
 :{bake|10 min} _croissants + _pains in #oven until the tops set.
 :lower #{oven|375F}.

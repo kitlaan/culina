@@ -1,0 +1,189 @@
+# The English core lexicon — the seed the tool ships.
+#
+# Channels per design.md (Lexicons). Resolution order: document registry
+# (">> unit: verre = 90 ml") -> collection overlay -> this core. Overlays
+# replace word-level: an overlay entry replaces the core entry whole;
+# list channels (approx, doneness, dates) union.
+#
+# Matching rules:
+# - unit input spellings are the key, short, and long, each plus its +s
+#   plural ("2 hours" matches "hour")
+# - fuzzy and verb words match whole words only
+# - everything is case-sensitive; lexicons are per-language, lowercase
+#   by convention
+
+lang = "en"
+
+[approx]
+words = ["about", "around", "roughly", "approximately", "~"]
+
+[doneness]
+words = ["until"]
+
+# Dates channel — qualifier words ahead of a date literal
+# ("circa 1961", "early 1970s"). Consumer ships with the date-grammar
+# work; the channel is seeded now so overlays are stable.
+[dates]
+words = ["circa", "by", "early", "late"]
+
+[fuzzy]
+# Ranges in minutes; cook-mode shows them as timer suggestions.
+overnight = { min = 480, max = 720, note = "fridge rest, not counter" }
+"a few hours" = { min = 120, max = 240 }
+
+# timer: whether duration fields on this action become timers (default
+# true). tense: base, 3rd person, past, participle.
+[verbs]
+add = { timer = false, tense = ["add", "adds", "added", "adding"] }
+bake = { tense = ["bake", "bakes", "baked", "baking"] }
+brush = { timer = false, tense = ["brush", "brushes", "brushed", "brushing"] }
+cool = { tense = ["cool", "cools", "cooled", "cooling"] }
+cut = { timer = false, tense = ["cut", "cuts", "cut", "cutting"] }
+enclose = { timer = false, tense = ["enclose", "encloses", "enclosed", "enclosing"] }
+fill = { timer = false, tense = ["fill", "fills", "filled", "filling"] }
+fold = { timer = false, tense = ["fold", "folds", "folded", "folding"] }
+fry = { tense = ["fry", "fries", "fried", "frying"] }
+knead = { tense = ["knead", "kneads", "kneaded", "kneading"] }
+lower = { timer = false, tense = ["lower", "lowers", "lowered", "lowering"] }
+make = { timer = false, tense = ["make", "makes", "made", "making"] }
+mix = { tense = ["mix", "mixes", "mixed", "mixing"] }
+pick = { timer = false, tense = ["pick", "picks", "picked", "picking"] }
+pound = { timer = false, tense = ["pound", "pounds", "pounded", "pounding"] }
+preheat = { timer = false, tense = ["preheat", "preheats", "preheated", "preheating"] }
+proof = { tense = ["proof", "proofs", "proofed", "proofing"] }
+rest = { tense = ["rest", "rests", "rested", "resting"] }
+rinse = { timer = false, tense = ["rinse", "rinses", "rinsed", "rinsing"] }
+roll = { timer = false, tense = ["roll", "rolls", "rolled", "rolling"] }
+season = { timer = false, tense = ["season", "seasons", "seasoned", "seasoning"] }
+serve = { timer = false, tense = ["serve", "serves", "served", "serving"] }
+shape = { timer = false, tense = ["shape", "shapes", "shaped", "shaping"] }
+simmer = { tense = ["simmer", "simmers", "simmered", "simmering"] }
+stir = { timer = false, tense = ["stir", "stirs", "stirred", "stirring"] }
+toast = { timer = false, tense = ["toast", "toasts", "toasted", "toasting"] }
+toss = { timer = false, tense = ["toss", "tosses", "tossed", "tossing"] }
+use = { timer = false, tense = ["use", "uses", "used", "using"] }
+whisk = { timer = false, tense = ["whisk", "whisks", "whisked", "whisking"] }
+
+# factor: to the dimension base — grams, liters, meters, seconds.
+# Countable and temperature units carry no factor.
+[units.g]
+dim = "mass"
+factor = 1.0
+long = "gram"
+
+[units.kg]
+dim = "mass"
+factor = 1000.0
+long = "kilogram"
+
+[units.mg]
+dim = "mass"
+factor = 0.001
+long = "milligram"
+
+[units.oz]
+dim = "mass"
+factor = 28.3495
+long = "ounce"
+
+[units.lb]
+dim = "mass"
+factor = 453.592
+long = "pound"
+
+[units.ml]
+dim = "volume"
+factor = 0.001
+long = "milliliter"
+
+[units.l]
+dim = "volume"
+factor = 1.0
+long = "liter"
+
+[units.tsp]
+dim = "volume"
+factor = 4.92892e-3
+short = "t."
+long = "teaspoon"
+
+[units.tbsp]
+dim = "volume"
+factor = 1.47868e-2
+short = "T."
+long = "tablespoon"
+
+[units.cup]
+dim = "volume"
+factor = 0.2365884
+long = "cup"
+
+[units.in]
+dim = "length"
+factor = 0.0254
+long = "inch"
+
+[units.cm]
+dim = "length"
+factor = 0.01
+long = "centimeter"
+
+[units.ft]
+dim = "length"
+factor = 0.3048
+long = "foot"
+
+[units.sec]
+dim = "time"
+factor = 1.0
+long = "second"
+
+[units.min]
+dim = "time"
+factor = 60.0
+long = "minute"
+
+[units.hour]
+dim = "time"
+factor = 3600.0
+long = "hour"
+alt = ["h"]
+
+[units.day]
+dim = "time"
+factor = 86400.0
+long = "day"
+
+[units.F]
+dim = "temperature"
+
+[units.C]
+dim = "temperature"
+
+[units.clove]
+dim = "count"
+long = "clove"
+
+[units.stalk]
+dim = "count"
+long = "stalk"
+
+[units.can]
+dim = "count"
+long = "can"
+
+[units.bunch]
+dim = "count"
+long = "bunch"
+
+[units.handful]
+dim = "count"
+long = "handful"
+
+[units.batch]
+dim = "count"
+long = "batch"
+
+[units.slice]
+dim = "count"
+long = "slice"

@@ -1,17 +1,19 @@
 //! The field grammar: split, classify, partition.
 //!
 //! Split happens in the inline scanner; classify and partition live here.
-//!
 //! A field is a quantity only if the quantity grammar consumes it fully —
-//! approx prefix, number (decimal, fraction, mixed, range), optional unit by
-//! longest match, nothing left over. Otherwise it is a note. This
+//! approx prefix, number (decimal, fraction, mixed, range), optional unit
+//! by longest match, nothing left over. Otherwise it is a note. This
 //! full-consumption rule is what makes parse-or-note deterministic.
 //!
-//! The partition rule: quantities come first; the first note ends the amount
-//! list; a quantity after a note is a syntax error, not a demotion.
+//! Approx prefixes and the unit dictionary come from the lexicon
+//! (design.md, Lexicons); the partition rule is: quantities first, the
+//! first note ends the amount list, and a quantity after a note is a
+//! syntax error, not a demotion.
 
 use crate::error::{ParseError, Result};
-use crate::units::{core_units, Dimension, Unit};
+use crate::lexicon::Lexicon;
+use crate::units::{Dimension, Unit};
 
 /// One `|` field of a tag or action: the raw text (printed verbatim) plus
 /// its classification.
@@ -64,12 +66,10 @@ pub enum Value {
     Range(f64, f64),
 }
 
-/// Approx prefixes — the seed of the approx-prefix lexicon channel.
-const APPROX_WORDS: [&str; 4] = ["about", "around", "roughly", "approximately"];
-
-/// Classify one raw field. Never fails: an unparseable field is a note.
-pub fn classify(raw: &str) -> FieldKind {
-    match parse_quantity(raw) {
+/// Classify one raw field against a lexicon. Never fails: an unparseable
+/// field is a note.
+pub fn classify(lex: &Lexicon, raw: &str) -> FieldKind {
+    match parse_quantity(lex, raw) {
         Some(q) => FieldKind::Quantity(q),
         None => FieldKind::Note,
     }
@@ -94,19 +94,19 @@ pub fn check_partition(line_no: usize, fields: &[Field]) -> Result<()> {
     Ok(())
 }
 
-pub fn parse_quantity(raw: &str) -> Option<Quantity> {
+pub fn parse_quantity(lex: &Lexicon, raw: &str) -> Option<Quantity> {
     let chars: Vec<char> = raw.trim().chars().collect();
     let mut i = 0;
 
     let mut approx = false;
-    if let Some(len) = approx_prefix_len(&chars) {
+    if let Some(len) = approx_prefix_len(lex, &chars) {
         approx = true;
         i = len;
     }
 
     let (value, next) = parse_number(&chars, i)?;
     i = next;
-    let (unit, next) = parse_unit(&chars, i)?;
+    let (unit, next) = parse_unit(lex, &chars, i)?;
     i = next;
 
     while i < chars.len() && chars[i].is_whitespace() {
@@ -122,17 +122,18 @@ pub fn parse_quantity(raw: &str) -> Option<Quantity> {
     })
 }
 
-fn approx_prefix_len(chars: &[char]) -> Option<usize> {
-    let mut i = if chars.first() == Some(&'~') {
-        1
-    } else {
-        let word: &str = &chars.iter().collect::<String>();
-        APPROX_WORDS
-            .iter()
-            .find(|w| word.starts_with(**w))?
-            .chars()
-            .count()
-    };
+fn approx_prefix_len(lex: &Lexicon, chars: &[char]) -> Option<usize> {
+    let word: &str = &chars.iter().collect::<String>();
+    let mut best: Option<usize> = None;
+    for w in &lex.approx.words {
+        if word.starts_with(w.as_str()) {
+            let len = w.chars().count();
+            if best.map_or(true, |b| len > b) {
+                best = Some(len);
+            }
+        }
+    }
+    let mut i = best?;
     while chars.get(i).is_some_and(|c| c.is_whitespace()) {
         i += 1;
     }
@@ -208,9 +209,11 @@ fn parse_digits(chars: &[char], start: usize) -> Option<(f64, usize)> {
     Some((value, i))
 }
 
-/// Units are optional (a count has none). Always succeeds; the caller's
-/// full-consumption check catches leftovers.
-fn parse_unit(chars: &[char], start: usize) -> Option<(Option<Unit>, usize)> {
+/// Units are optional (a count has none) and come from the lexicon: the
+/// key, short, and long spellings, each plus its +s plural. Longest match
+/// wins; the character after the unit must end the field or be whitespace.
+/// Always succeeds; the caller's full-consumption check catches leftovers.
+fn parse_unit(lex: &Lexicon, chars: &[char], start: usize) -> Option<(Option<Unit>, usize)> {
     let j = skip_ws(chars, start);
 
     // % escape: force an unknown unit (`1%glug`).
@@ -226,34 +229,42 @@ fn parse_unit(chars: &[char], start: usize) -> Option<(Option<Unit>, usize)> {
         let name: String = chars[word_start..k].iter().collect();
         return Some((
             Some(Unit {
+                spelling: name.clone(),
                 name,
                 dim: Dimension::Other,
+                factor: None,
             }),
             k,
         ));
     }
 
-    // Longest match from the dictionary, glued or spaced; the character
-    // after the unit must end the field or be whitespace.
-    let mut best: Option<(usize, &'static str, Dimension)> = None;
-    for (name, dim) in core_units() {
-        if starts_with_at(chars, j, name) {
-            let end = j + name.chars().count();
-            if end == chars.len() || chars[end].is_whitespace() {
-                if best.map_or(true, |(len, _, _)| name.chars().count() > len) {
-                    best = Some((name.chars().count(), name, *dim));
-                }
+    let spellings = lex.unit_spellings();
+    let mut best: Option<usize> = None;
+    for (idx, (spelling, _, _)) in spellings.iter().enumerate() {
+        if starts_with_at(chars, j, spelling) {
+            let end = j + spelling.chars().count();
+            let boundary = end == chars.len() || chars[end].is_whitespace();
+            let longer = best.map_or(true, |b| {
+                spelling.chars().count() > spellings[b].0.chars().count()
+            });
+            if boundary && longer {
+                best = Some(idx);
             }
         }
     }
     match best {
-        Some((len, name, dim)) => Some((
-            Some(Unit {
-                name: name.to_string(),
-                dim,
-            }),
-            j + len,
-        )),
+        Some(idx) => {
+            let (spelling, key, def) = &spellings[idx];
+            Some((
+                Some(Unit {
+                    name: key.clone(),
+                    spelling: spelling.clone(),
+                    dim: def.dim,
+                    factor: def.factor,
+                }),
+                j + spelling.chars().count(),
+            ))
+        }
         None => Some((None, j)),
     }
 }

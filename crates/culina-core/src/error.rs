@@ -71,6 +71,12 @@ pub enum ParseError {
 
     #[error("line {line}: '?' is for @ names only")]
     OptionalOutsideAt { line: usize },
+
+    #[error("bad lexicon: {detail}")]
+    BadLexicon { detail: String },
+
+    #[error("line {line}: bad unit registration '{value}' — write it as 'name = amount unit', e.g. 'verre = 90 ml'")]
+    BadUnitRegistration { line: usize, value: String },
 }
 
 impl ParseError {
@@ -95,7 +101,9 @@ impl ParseError {
             | ParseError::EmptyProduction { line }
             | ParseError::MultiplicityOnConsumption { line, .. }
             | ParseError::BadMultiplicity { line, .. }
-            | ParseError::OptionalOutsideAt { line } => *line,
+            | ParseError::OptionalOutsideAt { line }
+            | ParseError::BadUnitRegistration { line, .. } => *line,
+            ParseError::BadLexicon { .. } => 0,
         }
     }
 }

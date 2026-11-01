@@ -15,10 +15,14 @@ enum Mode {
 }
 
 fn main() -> ExitCode {
+    let args: Vec<String> = std::env::args().skip(1).collect();
     let mut mode = Mode::Write;
     let mut files: Vec<String> = Vec::new();
+    let mut lexicon_path: Option<String> = None;
 
-    for arg in std::env::args().skip(1) {
+    let mut i = 0;
+    while i < args.len() {
+        let arg = args[i].clone();
         match arg.as_str() {
             "--help" => {
                 print_help();
@@ -27,6 +31,16 @@ fn main() -> ExitCode {
             "--version" => {
                 println!("culinafmt {}", env!("CARGO_PKG_VERSION"));
                 return ExitCode::SUCCESS;
+            }
+            "--lexicon" => {
+                i += 1;
+                match args.get(i) {
+                    Some(p) => lexicon_path = Some(p.clone()),
+                    None => {
+                        eprintln!("culinafmt: --lexicon needs a path");
+                        return ExitCode::FAILURE;
+                    }
+                }
             }
             _ if arg.starts_with('-') => {
                 for c in arg.chars().skip(1) {
@@ -50,10 +64,22 @@ fn main() -> ExitCode {
             }
             _ => files.push(arg),
         }
+        i += 1;
     }
 
+    let collection = match &lexicon_path {
+        Some(p) => match culina_core::lexicon::Lexicon::from_path(std::path::Path::new(p)) {
+            Ok(l) => Some(l),
+            Err(e) => {
+                eprintln!("culinafmt: {e}");
+                return ExitCode::FAILURE;
+            }
+        },
+        None => None,
+    };
+
     if files.is_empty() {
-        return run_stdin();
+        return run_stdin(collection.as_ref());
     }
 
     let today = culina_core::fmt::today_utc();
@@ -67,7 +93,7 @@ fn main() -> ExitCode {
                 continue;
             }
         };
-        match culina_core::fmt::canonicalize(&text, Some(&today)) {
+        match culina_core::fmt::canonicalize_with(&text, Some(&today), collection.as_ref()) {
             Ok(out) => match mode {
                 Mode::Write => {
                     if out != text {
@@ -101,13 +127,13 @@ fn main() -> ExitCode {
     }
 }
 
-fn run_stdin() -> ExitCode {
+fn run_stdin(collection: Option<&culina_core::lexicon::Lexicon>) -> ExitCode {
     let mut input = String::new();
     if std::io::stdin().read_to_string(&mut input).is_err() {
         eprintln!("culinafmt: failed to read stdin");
         return ExitCode::FAILURE;
     }
-    match culina_core::fmt::canonicalize(&input, None) {
+    match culina_core::fmt::canonicalize_with(&input, None, collection) {
         Ok(out) => {
             print!("{out}");
             ExitCode::SUCCESS
@@ -123,11 +149,12 @@ fn print_help() {
     println!(
         "culinafmt {} — canonicalize .culina recipes
 
-Usage: culinafmt [-l|-d] [file ...]
+Usage: culinafmt [--lexicon PATH] [-l|-d] [file ...]
 
 With files: rewrite each in place when its form differs.
-  -l  list files whose form differs; do not write
-  -d  print unified diffs; do not write
+  -l            list files whose form differs; do not write
+  -d            print unified diffs; do not write
+  --lexicon     a collection overlay on the tool core (TOML)
 With no files: read stdin, print canonical text to stdout (no stamping).
 ",
         env!("CARGO_PKG_VERSION")

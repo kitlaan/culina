@@ -507,6 +507,24 @@ Seed contents are deliberately tiny — the English core ships `overnight`
 (8–12 h) and `a few hours` (2–4 h) for fuzzy durations. Everything else is
 prose until the ecosystem grows it.
 
+### Lexicon files
+
+- Format: **TOML**, one file per language — `lexicon.en.toml` — channels as
+  sections. The English core is embedded in the tool; collections pass an
+  overlay (`culinafmt --lexicon path.toml`).
+- Overlay semantics are word-level: a map entry replaces the core entry
+  whole, a missing word is added, and list channels (approx, doneness,
+  dates) union. Removal is not supported until a real collection needs it.
+- Matching: unit input spellings are the key, `short`, `long`, and `alt`
+  forms, each plus its `+s` plural ("2 hours" matches "hour"); one spelling
+  maps to exactly one unit. Fuzzy and verb words match whole words only.
+- `>> unit: verre = 90 ml` registers through existing units — 90 × ml's
+  factor — so the registry needs no data format of its own.
+- `note` is a standard optional field on any entry: seed wisdom is data
+  ("fridge rest, not counter"), comments stay for maintainers.
+- `factor` is to the dimension base (grams, liters, meters, seconds);
+  countables and temperatures carry none.
+
 ## Prep: note or thread?
 
 Identity is a property of crossing step boundaries. Prep used in the same step

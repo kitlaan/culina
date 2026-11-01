@@ -201,7 +201,9 @@ fn longest_match_prefers_tbsp_and_plurals() {
     assert_eq!(q(&t.fields[0]).unit.as_ref().unwrap().name, "tbsp");
 
     let s = first_step(":{simmer|2 hours} _curry\n");
-    assert_eq!(q(&s.action.fields[0]).unit.as_ref().unwrap().name, "hours");
+    let unit = q(&s.action.fields[0]).unit.as_ref().unwrap();
+    assert_eq!(unit.name, "hour");
+    assert_eq!(unit.spelling, "hours");
 }
 
 #[test]

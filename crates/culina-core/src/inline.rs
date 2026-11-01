@@ -8,6 +8,7 @@
 use crate::ast::{Action, AltGroup, Continuation, Seg, Sigil, Step, Tag};
 use crate::error::{ParseError, Result};
 use crate::fields::{check_partition, classify, Field};
+use crate::lexicon::Lexicon;
 
 /// Characters that end a bare tag name or a bare verb. Everything else up to
 /// whitespace is name material — including non-ASCII, so Thai thread names
@@ -21,31 +22,79 @@ pub struct StepAcc {
     pub continuations: Vec<(usize, String)>,
 }
 
-pub fn parse_step(acc: &StepAcc) -> Result<Step> {
-    let (action, rest) = parse_action(acc.line_no, &acc.head)?;
-    let head = scan(acc.line_no, rest)?;
+pub fn parse_step(lex: &Lexicon, acc: &StepAcc) -> Result<Step> {
+    let (action, rest) = parse_action(lex, acc.line_no, &acc.head)?;
+    let head = scan(lex, acc.line_no, rest)?;
     let continuations = acc
         .continuations
         .iter()
         .map(|(line_no, line)| {
             let trimmed = line.trim_start_matches([' ', '\t']);
             let indent = &line[..line.len() - trimmed.len()];
-            let segs = scan(*line_no, trimmed)?;
+            let segs = scan(lex, *line_no, trimmed)?;
             Ok(Continuation {
                 indent: indent.to_string(),
                 segs,
             })
         })
         .collect::<Result<Vec<_>>>()?;
+    let doneness = {
+        let all: Vec<&Seg> = head
+            .iter()
+            .chain(continuations.iter().flat_map(|c| c.segs.iter()))
+            .collect();
+        lift_doneness(lex, &all)
+    };
     Ok(Step {
         line_no: acc.line_no,
         action,
         head,
         continuations,
+        doneness,
     })
 }
 
-fn parse_action(line_no: usize, head: &str) -> Result<(Action, &str)> {
+/// The doneness lift (design.md, Timing): lexicon markers ("until") found
+/// in prose attach their span to the step as a typed field — the frame is
+/// grammar, the contents stay folk. Prose itself is untouched.
+fn lift_doneness(lex: &Lexicon, segs: &[&Seg]) -> Vec<String> {
+    let mut out = Vec::new();
+    for seg in segs {
+        if let Seg::Prose(p) = seg {
+            for marker in &lex.doneness.words {
+                if let Some(span) = span_from_word(p, marker) {
+                    out.push(span);
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Whole-word match on the marker; the span runs from it to the segment's
+/// end, trimmed of trailing whitespace only.
+fn span_from_word(text: &str, word: &str) -> Option<String> {
+    let bytes = text.as_bytes();
+    let w = word.as_bytes();
+    let is_sep = |b: u8| b.is_ascii_whitespace() || b".,;:!?()[]\"'".contains(&b);
+    let mut i = 0;
+    while i + w.len() <= bytes.len() {
+        if &bytes[i..i + w.len()] == w {
+            let before_ok = i == 0 || is_sep(bytes[i - 1]);
+            let after = i + w.len();
+            let after_ok = after >= bytes.len() || is_sep(bytes[after]);
+            if before_ok && after_ok {
+                return Some(text[i..].trim_end().to_string());
+            }
+        }
+        // Byte-wise scan is safe: ASCII marker bytes never appear inside a
+        // UTF-8 continuation sequence.
+        i += 1;
+    }
+    None
+}
+
+fn parse_action<'a>(lex: &Lexicon, line_no: usize, head: &'a str) -> Result<(Action, &'a str)> {
     // The block parser only routes lines that start with ':'.
     let rest = &head[1..];
     if let Some(open) = rest.strip_prefix('{') {
@@ -53,7 +102,7 @@ fn parse_action(line_no: usize, head: &str) -> Result<(Action, &str)> {
             .find('}')
             .ok_or(ParseError::UnterminatedBrace { line: line_no })?;
         let body = &open[..end];
-        let (verb, fields) = split_name_fields(line_no, body)?;
+        let (verb, fields) = split_name_fields(lex, line_no, body)?;
         if verb.is_empty() {
             return Err(ParseError::EmptyAction { line: line_no });
         }
@@ -79,7 +128,7 @@ fn parse_action(line_no: usize, head: &str) -> Result<(Action, &str)> {
     }
 }
 
-fn scan(line_no: usize, text: &str) -> Result<Vec<Seg>> {
+fn scan(lex: &Lexicon, line_no: usize, text: &str) -> Result<Vec<Seg>> {
     let chars: Vec<char> = text.chars().collect();
     let mut segs = Vec::new();
     let mut prose = String::new();
@@ -91,7 +140,7 @@ fn scan(line_no: usize, text: &str) -> Result<Vec<Seg>> {
                 if !prose.is_empty() {
                     segs.push(Seg::Prose(std::mem::take(&mut prose)));
                 }
-                let (tag, next) = parse_tag(line_no, &chars, i)?;
+                let (tag, next) = parse_tag(lex, line_no, &chars, i)?;
                 segs.push(Seg::Tag(tag));
                 i = next;
             }
@@ -143,7 +192,7 @@ fn standalone_plus(chars: &[char], i: usize) -> bool {
     i > 0 && chars[i - 1].is_whitespace() && chars.get(i + 1).is_some_and(|c| c.is_whitespace())
 }
 
-fn parse_tag(line_no: usize, chars: &[char], start: usize) -> Result<(Tag, usize)> {
+fn parse_tag(lex: &Lexicon, line_no: usize, chars: &[char], start: usize) -> Result<(Tag, usize)> {
     let sigil = match chars[start] {
         '@' => Sigil::At,
         '#' => Sigil::Hash,
@@ -159,7 +208,7 @@ fn parse_tag(line_no: usize, chars: &[char], start: usize) -> Result<(Tag, usize
             i += 1;
         }
         let body = collect_braced(line_no, chars, &mut i)?;
-        let (name, fields) = split_name_fields(line_no, &body)?;
+        let (name, fields) = split_name_fields(lex, line_no, &body)?;
         if name.is_empty() {
             return Err(ParseError::EmptyTagName {
                 line: line_no,
@@ -170,7 +219,7 @@ fn parse_tag(line_no: usize, chars: &[char], start: usize) -> Result<(Tag, usize
         while chars.get(i) == Some(&'{') {
             i += 1;
             let abody = collect_braced(line_no, chars, &mut i)?;
-            let (name, fields) = split_name_fields(line_no, &abody)?;
+            let (name, fields) = split_name_fields(lex, line_no, &abody)?;
             if name.is_empty() {
                 return Err(ParseError::EmptyTagName {
                     line: line_no,
@@ -251,7 +300,7 @@ fn collect_braced(line_no: usize, chars: &[char], i: &mut usize) -> Result<Strin
 
 /// Split a brace body into name plus classified fields, then check the
 /// partition rule: quantities before notes, loud on violation.
-fn split_name_fields(line_no: usize, body: &str) -> Result<(String, Vec<Field>)> {
+fn split_name_fields(lex: &Lexicon, line_no: usize, body: &str) -> Result<(String, Vec<Field>)> {
     let (name, rest) = match body.split_once('|') {
         Some((n, r)) => (n, r),
         None => return Ok((body.to_string(), Vec::new())),
@@ -261,7 +310,7 @@ fn split_name_fields(line_no: usize, body: &str) -> Result<(String, Vec<Field>)>
         for raw in rest.split('|') {
             fields.push(Field {
                 raw: raw.to_string(),
-                kind: classify(raw),
+                kind: classify(lex, raw),
             });
         }
     }

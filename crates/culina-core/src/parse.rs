@@ -12,8 +12,17 @@
 use crate::ast::{Block, Document, MetaLine};
 use crate::error::{ParseError, Result};
 use crate::inline::{parse_step, StepAcc};
+use crate::lexicon::Lexicon;
 
+/// Parse with the embedded English core — the convenience entry point.
 pub fn parse(input: &str) -> Result<Document> {
+    parse_with(input, &Lexicon::english())
+}
+
+/// Parse against an explicit lexicon. The full resolution order (document
+/// registry, collection overlay, language core) is assembled by
+/// `fmt::canonicalize_with`; this is the low-level entry.
+pub fn parse_with(input: &str, lex: &Lexicon) -> Result<Document> {
     let mut blocks: Vec<Block> = Vec::new();
     let mut open: Option<StepAcc> = None;
 
@@ -24,7 +33,7 @@ pub fn parse(input: &str) -> Result<Document> {
         let line_no = idx + 1;
         let line = raw.trim_end_matches('\r');
         if line.trim().is_empty() {
-            flush_step(&mut blocks, &mut open)?;
+            flush_step(lex, &mut blocks, &mut open)?;
             continue;
         }
 
@@ -37,7 +46,7 @@ pub fn parse(input: &str) -> Result<Document> {
             continue;
         }
 
-        flush_step(&mut blocks, &mut open)?;
+        flush_step(lex, &mut blocks, &mut open)?;
 
         if let Some(rest) = line.strip_prefix(">>") {
             let rest = rest.strip_prefix(' ').unwrap_or(rest);
@@ -75,14 +84,14 @@ pub fn parse(input: &str) -> Result<Document> {
             });
         }
     }
-    flush_step(&mut blocks, &mut open)?;
+    flush_step(lex, &mut blocks, &mut open)?;
 
     Ok(Document { blocks })
 }
 
-fn flush_step(blocks: &mut Vec<Block>, open: &mut Option<StepAcc>) -> Result<()> {
+fn flush_step(lex: &Lexicon, blocks: &mut Vec<Block>, open: &mut Option<StepAcc>) -> Result<()> {
     if let Some(acc) = open.take() {
-        blocks.push(Block::Step(parse_step(&acc)?));
+        blocks.push(Block::Step(parse_step(lex, &acc)?));
     }
     Ok(())
 }

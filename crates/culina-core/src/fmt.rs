@@ -1,10 +1,12 @@
-//! culinafmt's core: parse, validate, print, stamp.
+//! culinafmt's core: resolve the lexicon, parse, validate, print, stamp.
 
 use crate::ast::{Block, Document, MetaLine};
 use crate::error::Result;
+use crate::lexicon::Lexicon;
 use crate::{dag, parse, print};
 
-/// Canonicalize a document: parse, validate, print.
+/// Canonicalize a document: resolve the lexicon (document registry →
+/// collection → core, per `>> lang:`), parse, validate, print.
 ///
 /// Stamping rule (design.md, Provenance and dates): when the formatted text
 /// differs from the input, `>> modified: <today>` is stamped or refreshed —
@@ -12,7 +14,17 @@ use crate::{dag, parse, print};
 /// a file. `today: None` skips stamping entirely (stdin mode — the stamp is
 /// a file fact, and stdout is not a file).
 pub fn canonicalize(input: &str, today: Option<&str>) -> Result<String> {
-    let doc = parse::parse(input)?;
+    canonicalize_with(input, today, None)
+}
+
+/// Canonicalize with a collection overlay on the tool core.
+pub fn canonicalize_with(
+    input: &str,
+    today: Option<&str>,
+    collection: Option<&Lexicon>,
+) -> Result<String> {
+    let lex = resolve_lexicon(input, collection)?;
+    let doc = parse::parse_with(input, &lex)?;
     dag::validate(&doc)?;
     let printed = print::print(&doc);
     match today {
@@ -23,6 +35,38 @@ pub fn canonicalize(input: &str, today: Option<&str>) -> Result<String> {
         }
         _ => Ok(printed),
     }
+}
+
+/// The resolution order (design.md, Lexicons): document registry →
+/// collection config → tool core selected by `>> lang:`. The registry and
+/// the language live in metadata, which is pre-scanned before the full
+/// parse so the field grammar holds the final lexicon in hand. Public so
+/// embedders can run the same pipeline as `parse` + consumers.
+pub fn resolve_lexicon(input: &str, collection: Option<&Lexicon>) -> Result<Lexicon> {
+    let lang = prescan(input, "lang").first().map(|(_, v)| v.clone());
+    let mut lex = Lexicon::core_for(lang.as_deref().unwrap_or("en"));
+    if let Some(col) = collection {
+        lex = lex.overlay(col);
+    }
+    for (line_no, value) in prescan(input, "unit") {
+        lex.register_unit(&value, line_no)?;
+    }
+    Ok(lex)
+}
+
+/// Metadata lines for one key, with their line numbers — in file order.
+fn prescan(input: &str, key: &str) -> Vec<(usize, String)> {
+    let mut out = Vec::new();
+    for (idx, line) in input.split('\n').enumerate() {
+        if let Some(rest) = line.trim_end_matches('\r').strip_prefix(">>") {
+            if let Some((k, v)) = rest.trim_start().split_once(':') {
+                if k.trim() == key {
+                    out.push((idx + 1, v.trim().to_string()));
+                }
+            }
+        }
+    }
+    out
 }
 
 /// Refresh an existing `modified` line in place, or append one to the first

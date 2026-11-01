@@ -39,6 +39,9 @@ pub struct Step {
     /// Segments of the head line after the action.
     pub head: Vec<Seg>,
     pub continuations: Vec<Continuation>,
+    /// Doneness spans lifted from prose ("until doubled") by the lexicon's
+    /// doneness markers. The frame is grammar; the contents stay folk.
+    pub doneness: Vec<String>,
 }
 
 /// The `:verb` or `:{verb|fields}` that opens a step.

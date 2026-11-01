@@ -1,7 +1,10 @@
 //! AST for `.culina` documents: blocks, steps, and inline segments.
 //!
-//! `|` fields stay raw strings here; the field-grammar phase (quantity vs
-//! note classification) consumes them later.
+//! Field classification (quantity vs note) happens at parse time and rides
+//! along as `FieldKind`; scaling and DAG consumers read the kinds, the
+//! printer reads the raw strings.
+
+use crate::fields::{Field, Quantity};
 
 /// A parsed document: metadata and blocks in file order.
 #[derive(Debug)]
@@ -37,11 +40,11 @@ pub struct Step {
 }
 
 /// The `:verb` or `:{verb|fields}` that opens a step.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Action {
     pub verb: String,
-    /// Raw `|` fields, in order.
-    pub fields: Vec<String>,
+    /// Classified `|` fields, in order.
+    pub fields: Vec<Field>,
 }
 
 #[derive(Debug)]
@@ -62,16 +65,24 @@ pub enum Seg {
     Arrow,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
     pub sigil: Sigil,
     /// `?` on the name — only meaningful for `@`, parsed anywhere.
     pub optional: bool,
     pub name: String,
-    /// Raw `|` fields, in order.
-    pub fields: Vec<String>,
+    /// Classified `|` fields, in order.
+    pub fields: Vec<Field>,
     /// Parallel complete tag groups: `@{A|1}{B|1}`.
     pub alternatives: Vec<AltGroup>,
+}
+
+impl Tag {
+    /// The amount list — the leading quantity fields. Empty means implicit 1
+    /// (design.md: a missing amount on `@` is 1 of the thing).
+    pub fn amounts(&self) -> Vec<&Quantity> {
+        self.fields.iter().filter_map(|f| f.quantity()).collect()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,10 +102,11 @@ impl Sigil {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AltGroup {
     pub name: String,
-    pub fields: Vec<String>,
+    /// Classified `|` fields, in order.
+    pub fields: Vec<Field>,
 }
 
 impl Document {

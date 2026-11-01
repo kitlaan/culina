@@ -33,7 +33,9 @@ fn bare_and_braced_actions() {
 
     let s = first_step(":{rest|45 min} _dough\n");
     assert_eq!(s.action.verb, "rest");
-    assert_eq!(s.action.fields, vec!["45 min".to_string()]);
+    assert_eq!(s.action.fields.len(), 1);
+    assert_eq!(s.action.fields[0].raw, "45 min");
+    assert!(s.action.fields[0].is_quantity());
 }
 
 #[test]
@@ -45,7 +47,9 @@ fn braced_tag_fields_and_optional() {
     assert_eq!(t.sigil, Sigil::At);
     assert!(t.optional);
     assert_eq!(t.name, "makrut lime leaves");
-    assert_eq!(t.fields, vec!["2".to_string()]);
+    assert_eq!(t.fields.len(), 1);
+    assert_eq!(t.fields[0].raw, "2");
+    assert!(t.fields[0].is_quantity());
 }
 
 #[test]
@@ -55,10 +59,9 @@ fn alternatives_parse_as_parallel_groups() {
     assert_eq!(tags.len(), 1);
     assert_eq!(tags[0].alternatives.len(), 1);
     assert_eq!(tags[0].alternatives[0].name, "sweet basil");
-    assert_eq!(
-        tags[0].alternatives[0].fields,
-        vec!["1 handful".to_string()]
-    );
+    assert_eq!(tags[0].alternatives[0].fields.len(), 1);
+    assert_eq!(tags[0].alternatives[0].fields[0].raw, "1 handful");
+    assert!(tags[0].alternatives[0].fields[0].is_quantity());
 }
 
 #[test]

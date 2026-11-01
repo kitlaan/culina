@@ -6,8 +6,10 @@
 
 pub mod ast;
 pub mod error;
+pub mod fields;
 pub mod inline;
 pub mod parse;
 pub mod print;
+pub mod units;
 
 pub use error::{ParseError, Result};

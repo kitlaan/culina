@@ -7,6 +7,7 @@
 
 use crate::ast::{Action, AltGroup, Continuation, Seg, Sigil, Step, Tag};
 use crate::error::{ParseError, Result};
+use crate::fields::{check_partition, classify, Field};
 
 /// Characters that end a bare tag name or a bare verb. Everything else up to
 /// whitespace is name material — including non-ASCII, so Thai thread names
@@ -51,16 +52,11 @@ fn parse_action(line_no: usize, head: &str) -> Result<(Action, &str)> {
             .find('}')
             .ok_or(ParseError::UnterminatedBrace { line: line_no })?;
         let body = &open[..end];
-        let mut parts = body.split('|');
-        let verb = parts.next().unwrap_or("");
+        let (verb, fields) = split_name_fields(line_no, body)?;
         if verb.is_empty() {
             return Err(ParseError::EmptyAction { line: line_no });
         }
-        let action = Action {
-            verb: verb.to_string(),
-            fields: parts.map(str::to_string).collect(),
-        };
-        Ok((action, &open[end + 1..]))
+        Ok((Action { verb, fields }, &open[end + 1..]))
     } else {
         let mut end = 0;
         for c in rest.chars() {
@@ -152,7 +148,7 @@ fn parse_tag(line_no: usize, chars: &[char], start: usize) -> Result<(Tag, usize
             i += 1;
         }
         let body = collect_braced(line_no, chars, &mut i)?;
-        let (name, fields) = split_name_fields(&body);
+        let (name, fields) = split_name_fields(line_no, &body)?;
         if name.is_empty() {
             return Err(ParseError::EmptyTagName {
                 line: line_no,
@@ -163,7 +159,7 @@ fn parse_tag(line_no: usize, chars: &[char], start: usize) -> Result<(Tag, usize
         while chars.get(i) == Some(&'{') {
             i += 1;
             let abody = collect_braced(line_no, chars, &mut i)?;
-            let (name, fields) = split_name_fields(&abody);
+            let (name, fields) = split_name_fields(line_no, &abody)?;
             if name.is_empty() {
                 return Err(ParseError::EmptyTagName {
                     line: line_no,
@@ -242,12 +238,22 @@ fn collect_braced(line_no: usize, chars: &[char], i: &mut usize) -> Result<Strin
     }
 }
 
-fn split_name_fields(body: &str) -> (String, Vec<String>) {
-    match body.split_once('|') {
-        Some((name, rest)) => (
-            name.to_string(),
-            rest.split('|').map(str::to_string).collect(),
-        ),
-        None => (body.to_string(), Vec::new()),
+/// Split a brace body into name plus classified fields, then check the
+/// partition rule: quantities before notes, loud on violation.
+fn split_name_fields(line_no: usize, body: &str) -> Result<(String, Vec<Field>)> {
+    let (name, rest) = match body.split_once('|') {
+        Some((n, r)) => (n, r),
+        None => return Ok((body.to_string(), Vec::new())),
+    };
+    let mut fields = Vec::new();
+    if !rest.is_empty() {
+        for raw in rest.split('|') {
+            fields.push(Field {
+                raw: raw.to_string(),
+                kind: classify(raw),
+            });
+        }
     }
+    check_partition(line_no, &fields)?;
+    Ok((name.to_string(), fields))
 }

@@ -52,7 +52,7 @@ fn print_step(out: &mut String, step: &Step) {
         out.push_str(&step.action.verb);
         for f in &step.action.fields {
             out.push('|');
-            out.push_str(f);
+            out.push_str(&f.raw);
         }
         out.push('}');
     }
@@ -94,7 +94,7 @@ fn print_tag(out: &mut String, t: &Tag) {
         if !t.fields.is_empty() {
             for f in &t.fields {
                 out.push('|');
-                out.push_str(f);
+                out.push_str(&f.raw);
             }
         }
         out.push('}');
@@ -104,7 +104,7 @@ fn print_tag(out: &mut String, t: &Tag) {
             if !alt.fields.is_empty() {
                 for f in &alt.fields {
                     out.push('|');
-                    out.push_str(f);
+                    out.push_str(&f.raw);
                 }
             }
             out.push('}');

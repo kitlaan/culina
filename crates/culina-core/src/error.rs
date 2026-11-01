@@ -34,6 +34,9 @@ pub enum ParseError {
 
     #[error("line {line}: '{{' without a matching '}}'")]
     UnterminatedBrace { line: usize },
+
+    #[error("line {line}: quantity after note — '{field}' must move before the notes, or silent demotion drops the amount from scaling")]
+    QuantityAfterNote { line: usize, field: String },
 }
 
 pub type Result<T> = std::result::Result<T, ParseError>;

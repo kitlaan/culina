@@ -1,0 +1,7 @@
+[package]
+name = "culinafmt"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+culina-core = { path = "../culina-core" }

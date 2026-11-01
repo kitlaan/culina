@@ -1,0 +1,39 @@
+>> title: Red curry with chicken
+>> servings: 4
+>> cuisine: Thai
+>> dish: red curry
+>> aka: gaeng phet
+>> aka: แกงเผ็ด
+>> summary: Weeknight curry from a scratch paste, with a parallel rice track.
+
+# Chicken
+
+:toss @{chicken|500 g|bite-sized} with @{fish sauce|1 tbsp} => _chicken.
+  (start this before the paste; it needs 15 min)
+
+# Paste
+
+:toast @{coriander|1 tsp}, @{white peppercorn|1 tsp} in #{skillet|dry} until fragrant, then cool => _spices.
+:pick @{cilantro|1 bunch} into roots and leaves => _{cilantro roots} + _{cilantro leaves}.
+:pound @{shallot|2|halved}, @{garlic|6 cloves}, @{red chili|4}, @{lemongrass|1 stalk|cored}, @{galangal|1 in|sliced}, _{cilantro roots}, _spices in #{mortar} to a fine paste => _paste.
+
+# Curry
+
+:fry _paste in #{wok|medium} until darkened and fragrant, about 3 min => _base.
+:{fry|3 min} _chicken in _base until sealed outside => _curry.
+:stir @{coconut milk|2 cans} into _curry.
+:{simmer|7 min} _curry.
+:add @{green beans|150 g|trimmed} to _curry.
+:{simmer|3 min} _curry.
+:season _curry with @{fish sauce|1 tbsp|to taste}, @{palm sugar|1 tsp}, @{?makrut lime leaves|2}.
+:stir _curry off the heat with @{Thai basil|1 handful}{sweet basil|1 handful}.
+
+# Rice
+
+:rinse @{jasmine rice|300 g} in #{colander} until the water runs clear => _rice.
+:{simmer|15 min} _rice with @{water|450 ml} in #{pot|lid on} until the water is absorbed.
+  (start this when the curry first simmers)
+
+# Serve
+
+:serve _curry over _rice with _{cilantro leaves} + @{lime|1|cut into wedges}.

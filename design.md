@@ -75,7 +75,10 @@ structure.
   encodes the sync.
 - A block starting `:` is one step: one action.
 - Indented physical lines continue the same step.
-- A blank line separates blocks.
+- **Steps run adjacent** — no blank line between consecutive steps; the
+  dense wall is canonical. A blank line separates section headers and
+  metadata blocks from everything else. Input spacing is lenient;
+  `culinafmt` emits the canonical rule.
 
 The `#` collision (header vs. tool) resolves positionally: steps start with
 `:`, so a line-initial `# ` is always a section and `#foo` mid-step is always

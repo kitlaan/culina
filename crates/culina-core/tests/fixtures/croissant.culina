@@ -1,0 +1,49 @@
+>> title: Croissants & pains au chocolat
+>> servings: 12
+>> cuisine: French
+>> dish: croissant, pain au chocolat
+
+# Dough
+
+:mix @{flour|500 g}, @{water|290 g}, @{sugar|55 g}, @{salt|11 g}, @{yeast|9 g} in #{stand mixer} until a shaggy dough forms => _dough.
+:{knead|5 min} _dough in #{stand mixer|speed 2} until smooth but still slack.
+:{rest|overnight} _dough in #{fridge|40F}.
+
+# Butter block
+
+:pound @{butter|280 g} cold between #{parchment} into an 8-inch square => _{butter block}.
+:{rest|1 hour} _{butter block} in #{fridge|40F}.
+
+# Lamination
+
+:roll _dough into an 8x16 in rectangle => _sheet.
+:enclose _{butter block} in _sheet => _laminate.
+:roll _laminate to 6x18 in.
+:fold _laminate into thirds, like a letter.
+:{rest|45 min} _laminate in #{fridge|40F}.
+:roll _laminate to 6x18 in.
+:fold _laminate into thirds, like a letter.
+:{rest|45 min} _laminate in #{fridge|40F}.
+:roll _laminate to 6x18 in.
+:fold _laminate into thirds, like a letter.
+:{rest|overnight} _laminate in #{fridge|40F}.
+
+# Shape
+
+:roll _laminate into a 1/8 in-thick panel => _panel.
+:cut _panel into 12 pieces, 6 triangles and 6 rectangles => _{triangles|6} + _{rectangles|6}.
+:fill _rectangles with @{chocolate|60 g|chopped} => _filled.
+:roll _triangles into crescents => _croissants.
+:roll _filled into cylinders => _pains.
+
+# Proof and bake
+
+:whisk @{egg|1} with @{milk|1 tbsp} => _egg wash.
+:brush _croissants + _pains with _egg wash, arranged on #{sheet pan|parchment}.
+:{proof|2 hours} _croissants + _pains in a warm spot until jiggly and nearly doubled.
+:brush _croissants + _pains with _egg wash again.
+:preheat #{oven|425F} during the last 20 min of the proof.
+:{bake|10 min} _croissants + _pains in #oven until the tops set.
+:lower #{oven|375F}.
+:{bake|15 min} _croissants + _pains until deep golden.
+:cool _croissants + _pains on #{wire rack} until room temperature.

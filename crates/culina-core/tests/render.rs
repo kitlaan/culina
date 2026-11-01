@@ -104,6 +104,19 @@ fn jsonld_is_schema_recipe() {
 }
 
 #[test]
+fn steps_carry_their_durations() {
+    let html = fragment(">> title: T\n>> servings: 1\n\n:mix @{dough|1 cup} => _dough.\n:{bake|10 min} _dough until golden.\n");
+    assert!(
+        html.contains("data-duration=\"10 min\""),
+        "cook-mode hook: {html}"
+    );
+    // Fuzzy durations are notes — no hook, no invented timer.
+    let html =
+        fragment(">> title: T\n>> servings: 1\n\n:mix @{flour|1 cup} => _dough.\n:{rest|overnight} _dough.\n");
+    assert!(!html.contains("data-duration"), "{html}");
+}
+
+#[test]
 fn authored_prose_is_escaped() {
     let html =
         fragment(">> title: <script>alert(1)</script>\n>> servings: 2\n\n:mix @{flour|1 cup} & @{water|1 cup} well.\n");

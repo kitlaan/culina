@@ -35,6 +35,10 @@ pub struct CardModel {
 pub struct StepModel {
     pub text: String,
     pub segments: Vec<SegModel>,
+    /// The action's time-classified field, raw — the cook-mode hook
+    /// (`data-duration`). Fuzzy durations ("overnight") are notes and
+    /// stay absent.
+    pub duration: Option<String>,
 }
 
 #[derive(Debug)]
@@ -215,6 +219,11 @@ fn step_model(step: &Step) -> StepModel {
     StepModel {
         text: fold_text(&segments),
         segments,
+        duration: step
+            .action
+            .fields
+            .iter()
+            .find_map(|f| f.quantity().filter(|q| q.is_time()).map(|_| f.raw.clone())),
     }
 }
 
@@ -366,7 +375,12 @@ pub fn html_fragment(card: &CardModel) -> String {
             }
             out.push_str("<ol class=\"culina-steps\">\n");
             for step in steps {
-                out.push_str("<li class=\"culina-step\">");
+                let dur = step
+                    .duration
+                    .as_ref()
+                    .map(|d| format!(" data-duration=\"{}\"", esc(d)))
+                    .unwrap_or_default();
+                out.push_str(&format!("<li class=\"culina-step\"{dur}>"));
                 for seg in &step.segments {
                     match seg {
                         SegModel::Prose(p) => out.push_str(&esc(p)),

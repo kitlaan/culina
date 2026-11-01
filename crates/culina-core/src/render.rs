@@ -226,8 +226,8 @@ fn step_model(step: &Step) -> StepModel {
 
     // Split the production clause: everything from the Arrow onward is
     // data. Thread refs after the arrow are the produces; prose after
-    // them (the closing period, or a rare trailing sentence) stays with
-    // the step text.
+    // them accumulates as the tail — the closing period, then any
+    // continuation text. All pieces survive.
     let mut segments: Vec<SegModel> = Vec::new();
     let mut produces: Vec<String> = Vec::new();
     let mut in_production = false;
@@ -244,33 +244,36 @@ fn step_model(step: &Step) -> StepModel {
             SegModel::Prose(p) if in_production => {
                 let trimmed = p.trim_start();
                 if !trimmed.is_empty() {
-                    tail = trimmed.to_string();
+                    if !tail.is_empty() {
+                        tail.push(' ');
+                    }
+                    tail.push_str(trimmed);
                 }
             }
             other => segments.push(other),
         }
     }
     if !tail.is_empty() {
-        if tail.chars().any(char::is_alphabetic) {
-            // Real prose after the production (a continuation note, a
-            // trailing sentence): keep the separator space that preceded
-            // the arrow — "fish sauce (start this…)" not "fish sauce(start".
+        // Trim trailing whitespace from the preceding prose so the tail
+        // closes without a gap: "sauce." not "sauce ."
+        while segments
+            .last()
+            .is_some_and(|s| matches!(s, SegModel::Prose(p) if p.trim().is_empty()))
+        {
+            segments.pop();
+        }
+        if let Some(SegModel::Prose(p)) = segments.last_mut() {
+            while p.ends_with(char::is_whitespace) {
+                p.pop();
+            }
+        }
+        // Closing punctuation (.,;!?"'") attaches tight to the preceding
+        // word; opening content (parens, words) gets a separator space.
+        let closes = tail.chars().next().is_some_and(|c| ".,;!?\"'".contains(c));
+        if closes {
             segments.push(SegModel::Prose(tail));
         } else {
-            // Pure punctuation (the closing period): tight closure —
-            // "square" + "." not "square .".
-            while segments
-                .last()
-                .is_some_and(|s| matches!(s, SegModel::Prose(p) if p.trim().is_empty()))
-            {
-                segments.pop();
-            }
-            if let Some(SegModel::Prose(p)) = segments.last_mut() {
-                while p.ends_with(char::is_whitespace) {
-                    p.pop();
-                }
-            }
-            segments.push(SegModel::Prose(tail));
+            segments.push(SegModel::Prose(format!(" {tail}")));
         }
     }
 

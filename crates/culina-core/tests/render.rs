@@ -72,7 +72,7 @@ fn fixture_cards_render() {
         "alternatives join notes: {html}"
     );
     assert!(
-        html.contains("data-state=\"medium\""),
+        html.contains("data-state=\"medium heat\""),
         "tool state rides the span: {html}"
     );
 }
@@ -131,14 +131,15 @@ fn steps_carry_their_durations() {
 
 #[test]
 fn production_clause_is_data_not_prose() {
-    // A continuation after a production keeps its separator space.
+    // A continuation after a production: the period closes the sentence,
+    // then the continuation follows with a space.
     let (doc, _, _) = prepare(CURRY, None).unwrap();
     let model = card(&doc);
     let toss = &model.sections[0].1[0];
     assert!(
         toss.text
-            .ends_with("fish sauce (start this before the paste; it needs 15 min)"),
-        "continuation separation: {:?}",
+            .ends_with("fish sauce. (start this before the paste; it needs 15 min)"),
+        "period + continuation: {:?}",
         toss.text
     );
     assert_eq!(toss.produces, vec!["chicken".to_string()]);

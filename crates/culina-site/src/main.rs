@@ -285,31 +285,7 @@ built-in default), and a static/ directory copied verbatim.",
     );
 }
 
-const DEFAULT_CSS: &str = r#"
-:root { --bg: #fdfcf9; --fg: #24211d; --muted: #6f6a61; --accent: #9a3b12; --border: #e5e1d8; }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg);
-  font: 17px/1.65 'Iowan Old Style', 'Palatino Linotype', Charter, Georgia, serif; }
-main, article { max-width: 720px; margin: 0 auto; padding: 24px; }
-header.culina-site-header { max-width: 720px; margin: 0 auto; padding: 48px 24px 8px; }
-header.culina-site-header h1 { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
-.culina-title { font-family: ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.5px; }
-.culina-serves { color: var(--muted); }
-.culina-summary { font-size: 1.1em; }
-.culina-meta { display: grid; grid-template-columns: max-content 1fr; gap: 2px 16px; color: var(--muted); }
-.culina-meta-key { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.85em; }
-.culina-meta-value { margin: 0; }
-.culina-ingredients { list-style: none; padding: 0; border-top: 1px solid var(--border); }
-.culina-ingredient { padding: 6px 0; border-bottom: 1px solid var(--border); }
-.culina-ing-name { font-weight: 700; }
-.culina-ing-amounts { color: var(--accent); margin-left: 8px; }
-.culina-ing-notes { color: var(--muted); margin-left: 8px; font-style: italic; }
-.culina-section { font-family: ui-sans-serif, system-ui, sans-serif; margin-bottom: 4px; }
-.culina-steps { padding-left: 24px; }
-.culina-step { margin: 10px 0; }
-.culina-optional .culina-ing-name::after { content: " (optional)"; color: var(--muted); font-weight: 400; }
-ul.culina-recipe-index { list-style: none; max-width: 720px; margin: 0 auto; padding: 0 24px; }
-.culina-recipe-index-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
-.culina-recipe-index-item a { color: var(--accent); text-decoration: none; font-weight: 600; }
-.culina-recipe-index-summary { display: block; color: var(--muted); }
-"#;
+/// The built-in stylesheet: the classic recipe card (paper, double rule,
+/// dotted leaders). Collections override by dropping a `culina.css` at the
+/// input root; the `css/` directory ships three alternative stylesheets.
+const DEFAULT_CSS: &str = include_str!("../css/recipe-card.css");

@@ -76,7 +76,8 @@ the build. A `static/` directory is copied verbatim.
 ## Theming
 
 The HTML culina-site emits is semantic and unstyled, with stable
-`culina-*` classes. Restyling a recipe card means writing CSS against
+`culina-*` classes. The built-in default is the classic recipe card
+(paper, double rule, dotted leaders); restyling means writing CSS against
 those classes — no HTML changes.
 
 The renderer carries data on the elements it emits, as attributes:
@@ -89,19 +90,19 @@ The renderer carries data on the elements it emits, as attributes:
 | `data-produces` | step `<li>` | what the step creates (`_name`, joined) |
 | `data-cuisine` | the `<article>` | the `>> cuisine` value |
 
-These are the theming API. A stylesheet decides whether the reader sees
-the data — for example, inline measurements in the step prose:
+These are the theming API. Three example stylesheets in
+`crates/culina-site/css/` demonstrate what the hooks enable:
 
-```css
-.culina-ref-ingredient[data-amounts]::after {
-  content: " (" attr(data-amounts) ")";
-  font-style: italic;
-}
-```
+- **`inline-measurements.css`** — amounts and tool states appear in the
+  step prose: "fry paste in wok (medium heat)…"
+- **`parallel-tracks.css`** — sections become side-by-side swimlanes;
+  the parallelism visible at a glance
+- **`index-card.css`** — a 4×6 recipe-box card with cuisine-colored tab
+  and `@page` print mode for cardstock
 
-That's the whole feature — the renderer carries data, the target decides
-presentation. Five hooks, five CSS experiments (traditional card, inline
-measurements, margin rail, parallel tracks, cook mode), zero HTML changes.
+Drop any of these in as your collection's `culina.css` and culina-site
+uses it instead of the default. Or write your own against the same
+classes — the hooks are the contract.
 
 ## Repository layout
 
@@ -112,7 +113,8 @@ This repo is a spec and its reference implementation in one tree:
 - **`crates/culina-core`** — parser, validator, canonical printer, and the
   card model that renderers consume.
 - **`crates/culinafmt`** — the formatter CLI.
-- **`crates/culina-site`** — the static site generator CLI.
+- **`crates/culina-site`** — the static site generator CLI, with the
+  classic card stylesheet built in and three alternatives in `css/`.
 - **`crates/culina-core/tests/fixtures/`** — the two stress fixtures
   (croissants, red curry). They are conformance tests and are
   byte-canonical: `culinafmt` is a no-op on both.
@@ -127,11 +129,15 @@ Implemented: block and inline grammar, the field grammar (quantities,
 equivalency, approx prefixes, the `%` escape), DAG validation with honest
 thread errors, the formatter, lexicons with the full resolution order,
 the metadata key registry, the render pipeline (Document → CardModel →
-HTML with schema.org JSON-LD), and culina-site.
+HTML with schema.org JSON-LD), culina-site with the classic card
+stylesheet built in, and three example stylesheets (inline measurements,
+parallel tracks, index card).
 
 Specced in `design.md`, not yet built: the scaling engine's exact
-arithmetic, sub-recipe resolution across files, a WASM target, and
-per-language cores beyond English.
+arithmetic, sub-recipe resolution across files, a WASM target (which
+enables the cook-mode UI), per-language cores beyond English, and the
+true CfE grid target (which needs its own HTML emission, not a CSS
+approximation).
 
 ## Agent development
 

@@ -111,7 +111,13 @@ fn stamp_modified(doc: &mut Document, today: &str) {
             }
         }
     }
-    if let Some(Block::Meta(lines)) = doc.blocks.first_mut() {
+    // The first metadata block, wherever the author put it — metadata
+    // may trail the steps (design.md, Metadata).
+    let first_meta = doc.blocks.iter_mut().find_map(|b| match b {
+        Block::Meta(lines) => Some(lines),
+        _ => None,
+    });
+    if let Some(lines) = first_meta {
         // Synthetic line — the stamp is added after validation, so no
         // error ever points at it.
         lines.push(MetaLine {

@@ -313,6 +313,10 @@ call — one opaque node that produces a thread:
 ```
 
 - `>>` prefix, `key: value`.
+- `>>` blocks may appear anywhere in the file — a recipe can carry its
+  notes in a trailing block, where the source corpus had them. The
+  canonical form preserves authored position, and position carries no
+  semantics: every key is document-scope, whatever block it sits in.
 - **Required:** `title`, `servings`. Servings is the scaling baseline.
 - Metadata is also the recipe's public interface: a referencing parent scales
   against `>> servings` and consults the yield policy. See

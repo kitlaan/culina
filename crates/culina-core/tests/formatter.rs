@@ -49,6 +49,18 @@ fn fragments_never_gain_metadata() {
 }
 
 #[test]
+fn trailing_metadata_block_stamps_too() {
+    // Metadata may trail the steps (design.md, Metadata): the stamp
+    // lands in the first metadata block, not the first block.
+    let input = ":mix => _dough\n\n\n>> title: T\n>> servings: 1\n";
+    let out = canonicalize(input, Some("2026-11-01")).unwrap();
+    assert!(out.contains(">> modified: 2026-11-01"), "{out}");
+    // The stamp joins the trailing block, after the last authored line.
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines.last(), Some(&">> modified: 2026-11-01"));
+}
+
+#[test]
 fn stdin_mode_never_stamps() {
     let out = canonicalize(">> title: T\n\n\n:mix => _dough\n\n", None).unwrap();
     assert!(!out.contains("modified"), "{out}");

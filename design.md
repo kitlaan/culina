@@ -407,7 +407,12 @@ Two admission tests decide what may exist:
   Commas inside a value are content, so repetition is the only way to add a
   source.
 - `>> image:` — reference, line list. First listed is the representative
-  image (schema.org array semantics).
+  image (schema.org array semantics). Renderers show the first as the card
+  hero and the rest trail the method in a gallery; JSON-LD emits a string
+  for one image and an array for more. Images are document-scope —
+  interleaving an image with a specific step is deliberately out of scope;
+  if the need is real it is a new content-side mechanism, not a positional
+  metadata axis.
 - `>> note:` — free prose, line list. The home for whole-recipe notes the
   body cannot hold: variants, storage, what the leftovers are good for. A
   note never attaches to a step or thread — step tips stay as

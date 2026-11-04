@@ -171,6 +171,22 @@ li.culina-step[data-duration]::after {
   height: auto;
 }
 
+/* The gallery is a process sequence — grid auto-placement keeps reading
+   order, and tiles crop to one ratio for a tidy plate. */
+.culina-gallery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6pt;
+  margin: 8pt 0 4pt;
+}
+.culina-gallery-item {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+}
+/* A lone final tile spans the full width instead of orphaning a cell. */
+.culina-gallery-item:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
 /* The JSON-LD script is invisible by nature; nothing to do. */
 
 /* The site index in card-box style: a simple list. */

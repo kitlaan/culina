@@ -143,6 +143,22 @@ li.culina-step::marker { color: var(--accent); font-weight: 600; }
   height: auto;
 }
 
+/* The gallery is a process sequence — grid auto-placement keeps reading
+   order, and tiles crop to one ratio for a tidy plate. */
+.culina-gallery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 18px 0 6px;
+}
+.culina-gallery-item {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+}
+/* A lone final tile spans the full width instead of orphaning a cell. */
+.culina-gallery-item:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
 /* Recipe cards get printed. Drop the theater, keep the card. */
 @media print {
   body { background: #fff; padding: 0; }
@@ -154,6 +170,9 @@ li.culina-step::marker { color: var(--accent); font-weight: 600; }
     padding: 0;
   }
   li.culina-step { break-inside: avoid; }
+  /* Tiles are a screen economy; paper wants the full photos. */
+  .culina-gallery { display: block; }
+  .culina-gallery-item { aspect-ratio: auto; }
   .culina-photo { break-inside: avoid; }
 }
 

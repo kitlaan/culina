@@ -235,6 +235,49 @@ fn notes_stay_out_of_jsonld() {
     assert!(!s.contains("save the bone"), "{s}");
 }
 
+// --- Meta rows (design.md, `>> source:`) ---
+
+#[test]
+fn url_meta_values_render_as_host_links() {
+    // Screens show the host as link text; the full address stays in the
+    // href so print stylesheets can spell it out.
+    let html = fragment(
+        ">> title: T\n>> servings: 1\n>> source: https://www.example.com/a/long-source-link?x=1\n>> dish: soup\n\n:mix => _dough.\n",
+    );
+    assert!(
+        html.contains(
+            "<dd class=\"culina-meta-value culina-meta-url\"><a href=\"https://www.example.com/a/long-source-link?x=1\">example.com</a></dd>"
+        ),
+        "url value linked by host: {html}"
+    );
+    assert!(
+        html.contains("<dd class=\"culina-meta-value\">soup</dd>"),
+        "plain values stay plain: {html}"
+    );
+    assert_eq!(html.matches("culina-meta-url").count(), 1, "{html}");
+}
+
+#[test]
+fn meta_rows_group_each_key_with_its_value() {
+    // A wrapper per pair lets stylesheets keep a key beside its value
+    // instead of stranding "source:" at the end of a line.
+    let html = fragment(">> title: T\n>> servings: 1\n>> dish: soup\n\n:mix => _dough.\n");
+    assert!(
+        html.contains(
+            "<div class=\"culina-meta-item\"><dt class=\"culina-meta-key\">dish</dt><dd class=\"culina-meta-value\">soup</dd></div>"
+        ),
+        "{html}"
+    );
+}
+
+#[test]
+fn url_host_drops_credentials_port_scheme_and_www() {
+    let html = fragment(
+        ">> title: T\n>> servings: 1\n>> source: http://user@blog.example.org:8080/p\n\n:mix => _dough.\n",
+    );
+    assert!(html.contains(">blog.example.org:8080</a>"), "{html}");
+}
+
 // --- Images (design.md, key semantics) ---
 
 #[test]

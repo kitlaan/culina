@@ -415,7 +415,12 @@ Two admission tests decide what may exist:
   canonical link; anything else is an attribution statement ("adapted from
   Julia Child, MtAoFC — halved the time"). Parse-or-note; one key covers both.
   Commas inside a value are content, so repetition is the only way to add a
-  source.
+  source. Renderers show a URL-shaped value as a link: the host (no scheme,
+  credentials, or leading `www.`) is the text and the full address is the
+  `href`, so a screen gets a short anchor and a print stylesheet can spell
+  the address out from `attr(href)`. The value is tagged `culina-meta-url`.
+  Each meta key and value share one `culina-meta-item` wrapper, the hook
+  that keeps a key beside its value when the row wraps.
 - `>> image:` — reference, line list. First listed is the representative
   image (schema.org array semantics). Renderers show the first as the card
   hero and the rest trail the method in a gallery; JSON-LD emits a string

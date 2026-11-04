@@ -38,13 +38,23 @@ p.culina-serves { margin: 0 0 10px; text-align: center; color: var(--faded); fon
 p.culina-summary { margin: 0 auto 12px; max-width: 46ch; text-align: center; color: var(--faded); font-style: italic; }
 
 dl.culina-meta {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px;
   margin: 0 auto 20px; text-align: center;
   border-bottom: 1px solid var(--rule); padding-bottom: 16px;
 }
 .culina-meta dt { color: var(--faded); font-variant: small-caps; }
 .culina-meta dt::after { content: ":"; }
 .culina-meta dd { margin: 0; font-style: italic; }
+/* A pair wraps as a unit: the key never strands at a line end, but a long
+   value may wrap beside it. */
+.culina-meta-item { display: flex; gap: 0.3em; max-width: 100%; text-align: left; line-height: 1.35; }
+.culina-meta a { color: inherit; text-decoration: underline dotted; }
+.culina-meta .culina-meta-url { overflow-wrap: anywhere; }
+@media print {
+  /* The host is the screen text; paper needs the whole address. */
+  .culina-meta-url a { text-decoration: none; }
+  .culina-meta-url a::after { content: " (" attr(href) ")"; font-style: normal; }
+}
 
 /* Ingredients: multi-columned like the steps — the shared mise. */
 ul.culina-ingredients {

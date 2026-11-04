@@ -103,6 +103,11 @@ a tool.
 Braces when a tag is multiword or carries `|`. Bare otherwise: `@salt`,
 `#oven`, `_dough`.
 
+The action brace holds the verb and its fields only. A `{` inside it is a
+loud error, not a swallow: the first `}` ends the action, so a tag there
+(`:{brown @{chicken|1.5 kg} …`) would surrender its fields to the verb —
+`brown @{chicken` — and the amount silently vanishes from every render.
+
 `=>` is the canonical production sigil; `→` is accepted input sugar, and the
 formatter rewrites it to `=>` on canonicalization. With this, the grammar is
 pure ASCII: every non-ASCII byte in a recipe file is data — a Thai alias, a

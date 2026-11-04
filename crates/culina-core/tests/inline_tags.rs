@@ -118,6 +118,13 @@ fn loud_inline_errors() {
     assert!(parse(":mix @salt|2 g\n").is_err(), "bare tag with fields");
     assert!(parse(":mix {like this}\n").is_err(), "stray brace in prose");
     assert!(parse(":mix @{flour\n").is_err(), "unterminated brace");
+    // A tag inside the action brace: without this check the first '}'
+    // ends the action, the verb becomes "brown @{chicken", and the
+    // amount silently vanishes (found via a culina-site smoke render).
+    assert!(
+        parse(":{brown @{chicken|1.5 kg} in #{dutch oven} until golden => _{chicken}.\n").is_err(),
+        "tag inside the action brace"
+    );
 }
 
 #[test]

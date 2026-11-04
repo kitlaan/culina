@@ -100,7 +100,9 @@ fn date_grammar() {
 }
 
 fn date_ok(v: &str) -> bool {
-    let (err, _) = check(&format!(">> title: T\n>> date: {v}\n\n:mix => _dough\n"));
+    let (err, _) = check(&format!(
+        ">> title: T\n>> servings: 1\n>> date: {v}\n\n:mix => _dough\n"
+    ));
     err.is_none()
 }
 
@@ -115,7 +117,9 @@ fn enums_and_durations_and_tags() {
         ">> lang: zh-Hans",
     ];
     for line in ok_cases {
-        let (err, _) = check(&format!(">> title: T\n{line}\n\n:mix => _dough\n"));
+        let (err, _) = check(&format!(
+            ">> title: T\n>> servings: 1\n{line}\n\n:mix => _dough\n"
+        ));
         assert!(err.is_none(), "{line} should pass: {err:?}");
     }
 
@@ -127,7 +131,9 @@ fn enums_and_durations_and_tags() {
         (">> yield-scales: big", "yield-scales"),
     ];
     for (line, key) in bad_cases {
-        let (err, _) = check(&format!(">> title: T\n{line}\n\n:mix => _dough\n"));
+        let (err, _) = check(&format!(
+            ">> title: T\n>> servings: 1\n{line}\n\n:mix => _dough\n"
+        ));
         let err = err.unwrap_or_else(|| panic!("{line} should fail"));
         assert!(err.contains(key), "{err}");
     }
@@ -152,7 +158,7 @@ fn unit_shape_needs_an_equals_sign() {
 fn note_repeats_freely_as_prose() {
     // Prose form, many-valued: each line is one note, commas are content,
     // and no warning rides — the key is in the registry.
-    let input = ">> title: T\n>> note: brown-sugar variant (130 g brown sugar, 260 g water)\n>> note: save the bone\n\n:mix => _dough\n";
+    let input = ">> title: T\n>> servings: 1\n>> note: brown-sugar variant (130 g brown sugar, 260 g water)\n>> note: save the bone\n\n:mix => _dough\n";
     let (err, warnings) = check(input);
     assert!(err.is_none(), "note is many-valued: {err:?}");
     assert!(warnings.is_empty(), "note is a known key: {warnings:?}");
@@ -164,6 +170,25 @@ fn note_rejects_empty_values() {
     let err = err.expect("empty prose must fail");
     assert!(err.contains("line 2"), "{err}");
     assert!(err.contains("note"), "{err}");
+}
+
+// --- Required keys (design.md, Metadata) ---
+
+#[test]
+fn required_keys_are_required() {
+    // The minimal recipe is valid; each required key, absent, fails.
+    let (err, _) = check(">> title: T\n>> servings: 1\n\n:mix => _dough\n");
+    assert!(err.is_none(), "minimal recipe is valid: {err:?}");
+
+    let (err, _) = check(">> title: T\n\n:mix => _dough\n");
+    let err = err.expect("missing servings must fail");
+    assert!(err.contains("servings"), "{err}");
+    assert!(err.contains("add"), "{err}");
+
+    let (err, _) = check(":mix => _dough\n");
+    let err = err.expect("missing metadata must fail");
+    assert!(err.contains("title"), "{err}");
+    assert!(err.contains("servings"), "{err}");
 }
 
 // --- Warn and pass through ---

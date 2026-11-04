@@ -97,9 +97,12 @@ fn diff_mode_prints_unified_diff_and_does_not_write() {
 
 #[test]
 fn stdin_to_stdout_canonicalizes_without_stamping() {
-    let (code, out, _) = run(&[], Some(">> title: T\n\n\n:mix => _dough\n"));
+    let (code, out, _) = run(
+        &[],
+        Some(">> title: T\n>> servings: 1\n\n\n:mix => _dough\n"),
+    );
     assert_eq!(code, Some(0));
-    assert_eq!(out, ">> title: T\n\n:mix => _dough\n");
+    assert_eq!(out, ">> title: T\n>> servings: 1\n\n:mix => _dough\n");
     assert!(!out.contains("modified"), "stdin never stamps: {out}");
 }
 
@@ -115,7 +118,12 @@ fn validation_error_renders_and_fails() {
 
 #[test]
 fn unknown_meta_key_warns_but_formats() {
-    let path = tmp("warn", ">> title: T\n>> servngs: 6\n\n:mix => _dough\n");
+    // The typo stays at line 2; the real servings line behind it keeps
+    // the recipe valid.
+    let path = tmp(
+        "warn",
+        ">> title: T\n>> servngs: 6\n>> servings: 1\n\n:mix => _dough\n",
+    );
     let (code, _, err) = run(&[path.to_str().unwrap()], None);
     assert_eq!(code, Some(0), "warnings never fail: {err}");
     assert!(err.contains("warning"), "{err}");

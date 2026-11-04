@@ -149,8 +149,11 @@ fn bad_registry_line_is_loud_in_canonicalize() {
 #[test]
 fn lang_prescan_falls_back_to_english() {
     // Only the English core ships; fr falls back without failing.
-    let out = canonicalize(">> title: T\n>> lang: fr\n\n:mix => _dough\n", None)
-        .expect("falls back to the English core");
+    let out = canonicalize(
+        ">> title: T\n>> servings: 1\n>> lang: fr\n\n:mix => _dough\n",
+        None,
+    )
+    .expect("falls back to the English core");
     assert!(out.contains(">> lang: fr"));
 }
 
@@ -196,7 +199,7 @@ long = "banana unit"
     )
     .expect("overlay parses");
 
-    let input = ">> title: T\n\n:season with @{wine|2 banane}\n";
+    let input = ">> title: T\n>> servings: 1\n\n:season with @{wine|2 banane}\n";
     let bare = canonicalize(input, None).expect("parses");
     assert!(bare.contains("2 banane"), "raw text preserved: {bare}");
 

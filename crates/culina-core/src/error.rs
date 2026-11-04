@@ -36,6 +36,9 @@ pub enum ParseError {
     #[error("line {line}: '{{' without a matching '}}'")]
     UnterminatedBrace { line: usize },
 
+    #[error("line {line}: '{{' inside the action brace — the action holds the verb and its fields only; write the verb bare and keep tags after")]
+    StrayBraceInAction { line: usize },
+
     #[error("line {line}: quantity after note — '{field}' must move before the notes, or silent demotion drops the amount from scaling")]
     QuantityAfterNote { line: usize, field: String },
 
@@ -111,6 +114,7 @@ impl ParseError {
             | ParseError::BareTagWithFields { line, .. }
             | ParseError::StrayBrace { line }
             | ParseError::UnterminatedBrace { line }
+            | ParseError::StrayBraceInAction { line }
             | ParseError::QuantityAfterNote { line, .. }
             | ParseError::ThreadNeverCreated { line, .. }
             | ParseError::ThreadEnded { line, .. }

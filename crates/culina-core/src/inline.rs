@@ -104,6 +104,12 @@ fn parse_action<'a>(lex: &Lexicon, line_no: usize, head: &'a str) -> Result<(Act
             .find('}')
             .ok_or(ParseError::UnterminatedBrace { line: line_no })?;
         let body = &open[..end];
+        // The first '}' ends the action, so a '{' here means a tag opened
+        // inside the action brace — its fields would become silent,
+        // unrendered action data. Loud, per the spec's error philosophy.
+        if body.contains('{') {
+            return Err(ParseError::StrayBraceInAction { line: line_no });
+        }
         let (verb, fields) = split_name_fields(lex, line_no, body)?;
         if verb.is_empty() {
             return Err(ParseError::EmptyAction { line: line_no });

@@ -313,6 +313,10 @@ call — one opaque node that produces a thread:
 ```
 
 - `>>` prefix, `key: value`.
+- `>>` blocks may appear anywhere in the file — a recipe can carry its
+  notes in a trailing block, where the source corpus had them. The
+  canonical form preserves authored position, and position carries no
+  semantics: every key is document-scope, whatever block it sits in.
 - **Required:** `title`, `servings`. Servings is the scaling baseline.
 - Metadata is also the recipe's public interface: a referencing parent scales
   against `>> servings` and consults the yield policy. See
@@ -551,6 +555,10 @@ one expression of it. Different keys carry each half.
   file. It refreshes an existing `modified` line in place and never creates
   metadata for a file without any. Do not hand-edit; it means last canonical
   revision, and unformatted edits are git's business.
+- The first canonicalization of a scruffy file is itself a revision —
+  normalizing counts as a change. One formatting pass over a collection
+  therefore dates every file the same day: the stamp means
+  canonicalized-on, not authored-on.
 - Detached from a repo (zip, email, blog post) the file still self-describes —
   that is the whole argument for the key. Hugo does this dance with `lastmod`.
 - No `created:`. Two independent proofs: the formatter cannot witness birth

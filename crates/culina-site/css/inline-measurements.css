@@ -131,6 +131,14 @@ ol.culina-steps { padding-left: 26px; margin: 0; }
 li.culina-step { margin: 12px 0; }
 li.culina-step::marker { color: var(--accent); font-weight: 600; }
 
+/* Photos scale to the card's content box; intrinsic sizes overflow it. */
+.culina-photo,
+.culina-gallery-item {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 /* Recipe cards get printed. Drop the theater, keep the card. */
 @media print {
   body { background: #fff; padding: 0; }

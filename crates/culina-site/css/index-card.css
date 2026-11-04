@@ -163,6 +163,14 @@ li.culina-step[data-duration]::after {
   font-size: 8pt;
 }
 
+/* Photos scale to the card's content box; intrinsic sizes overflow it. */
+.culina-photo,
+.culina-gallery-item {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 /* The JSON-LD script is invisible by nature; nothing to do. */
 
 /* The site index in card-box style: a simple list. */

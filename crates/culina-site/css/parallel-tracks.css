@@ -102,6 +102,14 @@ li.culina-step::marker { color: var(--accent); font-weight: 600; }
   div.culina-method { columns: 1; }
 }
 
+/* Photos scale to the card's content box; intrinsic sizes overflow it. */
+.culina-photo,
+.culina-gallery-item {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 @media print {
   body { background: #fff; padding: 0; }
   article.culina-recipe { box-shadow: none; outline: none; border: none; max-width: none; padding: 0; }

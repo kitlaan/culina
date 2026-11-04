@@ -234,3 +234,59 @@ fn notes_stay_out_of_jsonld() {
     let s = serde_json::to_string(&jsonld(&card(&doc))).unwrap();
     assert!(!s.contains("save the bone"), "{s}");
 }
+
+// --- Images (design.md, key semantics) ---
+
+#[test]
+fn first_image_is_the_hero_and_the_rest_trail() {
+    let html = fragment(
+        ">> title: T\n>> servings: 1\n>> image: photos/top.jpg\n>> image: photos/braise.jpg\n>> note: save the bone\n\n:mix => _dough.\n",
+    );
+    assert!(
+        html.contains("<img class=\"culina-photo\" src=\"photos/top.jpg\""),
+        "first image is the hero: {html}"
+    );
+    assert!(
+        html.contains("<img class=\"culina-gallery-item\" src=\"photos/braise.jpg\""),
+        "second image rides the gallery: {html}"
+    );
+    // The gallery trails the notes — words finish as one run, then plates.
+    let notes = html.find("culina-notes").expect("notes aside");
+    let gallery = html.find("culina-gallery").expect("gallery div");
+    assert!(notes < gallery, "gallery after the notes: {html}");
+    // The hero never duplicates into the gallery.
+    assert_eq!(html.matches("culina-gallery-item").count(), 1, "{html}");
+}
+
+#[test]
+fn single_image_needs_no_gallery() {
+    let html = fragment(">> title: T\n>> servings: 1\n>> image: a.jpg\n\n:mix => _dough.\n");
+    assert!(
+        html.contains("class=\"culina-photo\" src=\"a.jpg\" alt=\"T\" loading=\"eager\""),
+        "hero loads eager — it is the largest contentful paint: {html}"
+    );
+    assert!(
+        !html.contains("culina-gallery"),
+        "no gallery div for one image: {html}"
+    );
+}
+
+#[test]
+fn image_jsonld_is_a_string_for_one_and_an_array_for_more() {
+    let (doc, _, _) = prepare(
+        ">> title: T\n>> servings: 1\n>> image: a.jpg\n\n:mix => _dough.\n",
+        None,
+    )
+    .unwrap();
+    assert_eq!(jsonld(&card(&doc))["image"], serde_json::json!("a.jpg"));
+
+    let (doc, _, _) = prepare(
+        ">> title: T\n>> servings: 1\n>> image: a.jpg\n>> image: b.jpg\n\n:mix => _dough.\n",
+        None,
+    )
+    .unwrap();
+    assert_eq!(
+        jsonld(&card(&doc))["image"],
+        serde_json::json!(["a.jpg", "b.jpg"])
+    );
+}

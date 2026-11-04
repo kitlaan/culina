@@ -21,8 +21,10 @@ pub struct CardModel {
     pub serves: Option<String>,
     /// Display rows: (label, value) — cuisine, dish, source, …
     pub meta: Vec<(&'static str, String)>,
-    /// First (representative) image path, if the recipe has one.
-    pub photo: Option<String>,
+    /// Authored images in order; the first is the representative — the
+    /// card hero. The rest are supporting shots, never step-anchored
+    /// (see design.md, key semantics).
+    pub photos: Vec<String>,
     /// Whole-recipe notes, one per authored `>> note:` line. Rendered after
     /// the method; never a meta row and never JSON-LD (schema.org has no
     /// honest slot — see design.md, key semantics).
@@ -91,11 +93,7 @@ pub fn card(doc: &Document) -> CardModel {
             "title" => card.title = m.value.clone(),
             "summary" => card.summary = Some(m.value.clone()),
             "servings" => card.serves = Some(m.value.clone()),
-            "image" => {
-                if card.photo.is_none() {
-                    card.photo = Some(m.value.clone());
-                }
-            }
+            "image" => card.photos.push(m.value.clone()),
             "note" => card.notes.push(m.value.clone()),
             _ => {
                 if let Some(label) = meta_label(&m.key) {
@@ -322,8 +320,16 @@ pub fn jsonld(card: &CardModel) -> serde_json::Value {
     if let Some(s) = &card.serves {
         obj.insert("recipeYield".into(), json!(s));
     }
-    if let Some(p) = &card.photo {
-        obj.insert("image".into(), json!(p));
+    // schema.org accepts a single URL or an array; first is representative
+    // either way. One image stays a string — the common real-world emit.
+    match card.photos.as_slice() {
+        [] => {}
+        [only] => {
+            obj.insert("image".into(), json!(only));
+        }
+        many => {
+            obj.insert("image".into(), json!(many));
+        }
     }
     if !card.ingredients.is_empty() {
         obj.insert(
@@ -400,10 +406,13 @@ pub fn html_fragment(card: &CardModel) -> String {
             esc(summary)
         ));
     }
-    if let Some(photo) = &card.photo {
+    if let Some(hero) = card.photos.first() {
+        // Eager, not lazy: the hero is above the fold and usually the
+        // largest contentful paint — lazy-loading it delays the thing the
+        // reader came for.
         out.push_str(&format!(
-            "<img class=\"culina-photo\" src=\"{}\" alt=\"{}\" loading=\"lazy\">\n",
-            esc(photo),
+            "<img class=\"culina-photo\" src=\"{}\" alt=\"{}\" loading=\"eager\">\n",
+            esc(hero),
             esc(&card.title)
         ));
     }
@@ -505,6 +514,19 @@ pub fn html_fragment(card: &CardModel) -> String {
             out.push_str(&format!("<p class=\"culina-note\">{}</p>\n", esc(n)));
         }
         out.push_str("</aside>\n");
+    }
+    // Supporting shots trail the notes — the card's words finish as one
+    // run, then the media plates (design.md, `>> image:` semantics).
+    if card.photos.len() > 1 {
+        out.push_str("<div class=\"culina-gallery\">\n");
+        for img in &card.photos[1..] {
+            out.push_str(&format!(
+                "<img class=\"culina-gallery-item\" src=\"{}\" alt=\"{}\" loading=\"lazy\">\n",
+                esc(img),
+                esc(&card.title)
+            ));
+        }
+        out.push_str("</div>\n");
     }
     let mut ld = serde_json::to_string(&jsonld(card)).expect("jsonld serializes");
     // serde_json does not escape angle brackets; a raw "</script" inside a

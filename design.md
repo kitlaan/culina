@@ -556,6 +556,10 @@ one expression of it. Different keys carry each half.
   file. It refreshes an existing `modified` line in place and never creates
   metadata for a file without any. Do not hand-edit; it means last canonical
   revision, and unformatted edits are git's business.
+- The first canonicalization of a scruffy file is itself a revision —
+  normalizing counts as a change. One formatting pass over a collection
+  therefore dates every file the same day: the stamp means
+  canonicalized-on, not authored-on.
 - Detached from a repo (zip, email, blog post) the file still self-describes —
   that is the whole argument for the key. Hugo does this dance with `lastmod`.
 - No `created:`. Two independent proofs: the formatter cannot witness birth

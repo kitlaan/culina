@@ -146,6 +146,26 @@ fn unit_shape_needs_an_equals_sign() {
     assert!(err.contains("line 2"), "{err}");
 }
 
+// --- The note key (design.md, key semantics) ---
+
+#[test]
+fn note_repeats_freely_as_prose() {
+    // Prose form, many-valued: each line is one note, commas are content,
+    // and no warning rides — the key is in the registry.
+    let input = ">> title: T\n>> note: brown-sugar variant (130 g brown sugar, 260 g water)\n>> note: save the bone\n\n:mix => _dough\n";
+    let (err, warnings) = check(input);
+    assert!(err.is_none(), "note is many-valued: {err:?}");
+    assert!(warnings.is_empty(), "note is a known key: {warnings:?}");
+}
+
+#[test]
+fn note_rejects_empty_values() {
+    let (err, _) = check(">> title: T\n>> note:\n\n:mix => _dough\n");
+    let err = err.expect("empty prose must fail");
+    assert!(err.contains("line 2"), "{err}");
+    assert!(err.contains("note"), "{err}");
+}
+
 // --- Warn and pass through ---
 
 #[test]

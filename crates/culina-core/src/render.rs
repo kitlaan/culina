@@ -23,6 +23,10 @@ pub struct CardModel {
     pub meta: Vec<(&'static str, String)>,
     /// First (representative) image path, if the recipe has one.
     pub photo: Option<String>,
+    /// Whole-recipe notes, one per authored `>> note:` line. Rendered after
+    /// the method; never a meta row and never JSON-LD (schema.org has no
+    /// honest slot — see design.md, key semantics).
+    pub notes: Vec<String>,
     /// Section title (`None` for steps before any header) and its steps.
     pub sections: Vec<(Option<String>, Vec<StepModel>)>,
     /// Aggregated ingredients: (name, amounts, notes, optional).
@@ -92,6 +96,7 @@ pub fn card(doc: &Document) -> CardModel {
                     card.photo = Some(m.value.clone());
                 }
             }
+            "note" => card.notes.push(m.value.clone()),
             _ => {
                 if let Some(label) = meta_label(&m.key) {
                     card.meta.push((label, m.value.clone()));
@@ -493,6 +498,13 @@ pub fn html_fragment(card: &CardModel) -> String {
             out.push_str("</ol>\n");
         }
         out.push_str("</div>\n");
+    }
+    if !card.notes.is_empty() {
+        out.push_str("<aside class=\"culina-notes\">\n");
+        for n in &card.notes {
+            out.push_str(&format!("<p class=\"culina-note\">{}</p>\n", esc(n)));
+        }
+        out.push_str("</aside>\n");
     }
     let mut ld = serde_json::to_string(&jsonld(card)).expect("jsonld serializes");
     // serde_json does not escape angle brackets; a raw "</script" inside a

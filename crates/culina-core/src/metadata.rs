@@ -45,6 +45,7 @@ fn known(key: &str) -> Option<(Form, bool)> {
         "dish" => (Token, false),
         "aka" => (Prose, false),
         "image" => (Reference, false),
+        "note" => (Prose, false),
         "units" => (Literal("metric, imperial, or us"), true),
         "lang" => (Literal("a BCP 47 tag, e.g. en or fr-FR"), true),
         "time" => (Literal("a duration, e.g. 45 min"), true),

@@ -415,7 +415,9 @@ Two admission tests decide what may exist:
   canonical link; anything else is an attribution statement ("adapted from
   Julia Child, MtAoFC — halved the time"). Parse-or-note; one key covers both.
   Commas inside a value are content, so repetition is the only way to add a
-  source.
+  source. Renderers tag URL-shaped values `culina-meta-url` — a URL is one
+  unbreakable word, and without the hook a long link stretches the meta row
+  past the card.
 - `>> image:` — reference, line list. First listed is the representative
   image (schema.org array semantics). Renderers show the first as the card
   hero and the rest trail the method in a gallery; JSON-LD emits a string

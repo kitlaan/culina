@@ -129,6 +129,13 @@ pub fn card(doc: &Document) -> CardModel {
     card
 }
 
+/// URL shape per design.md's `>> source:` contract — "a value that parses
+/// as a URL is the canonical link". http/https only: a scheme-relative or
+/// bare `www.` string is an attribution statement, not a link.
+fn is_url(s: &str) -> bool {
+    s.starts_with("http://") || s.starts_with("https://")
+}
+
 fn meta_label(key: &str) -> Option<&'static str> {
     Some(match key {
         "cuisine" => "cuisine",
@@ -419,9 +426,18 @@ pub fn html_fragment(card: &CardModel) -> String {
     if !card.meta.is_empty() {
         out.push_str("<dl class=\"culina-meta\">\n");
         for (label, value) in &card.meta {
+            // A URL is one unbreakable word; the class is the hook
+            // stylesheets use to let it wrap instead of stretching the
+            // row past the card (design.md, `>> source:`).
+            let value_cls = if is_url(value) {
+                "culina-meta-value culina-meta-url"
+            } else {
+                "culina-meta-value"
+            };
             out.push_str(&format!(
-                "<dt class=\"culina-meta-key\">{}</dt><dd class=\"culina-meta-value\">{}</dd>\n",
+                "<dt class=\"culina-meta-key\">{}</dt><dd class=\"{}\">{}</dd>\n",
                 esc(label),
+                value_cls,
                 esc(value)
             ));
         }

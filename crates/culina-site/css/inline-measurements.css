@@ -72,6 +72,9 @@ dl.culina-meta {
 .culina-meta dt::after { content: ":"; }
 .culina-meta dd { margin: 0; }
 .culina-meta .culina-meta-value { font-style: italic; white-space: nowrap; }
+/* Source links wrap — a URL is one unbreakable word and would stretch
+   the row past the card; the renderer tags them culina-meta-url. */
+.culina-meta .culina-meta-url { white-space: normal; overflow-wrap: anywhere; }
 
 /* "Ingredients" heading, injected by CSS — the HTML stays semantic. */
 ul.culina-ingredients { position: relative; margin: 26px 0 30px; padding: 0; list-style: none; }

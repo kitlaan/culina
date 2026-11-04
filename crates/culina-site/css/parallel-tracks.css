@@ -45,6 +45,9 @@ dl.culina-meta {
 .culina-meta dt { color: var(--faded); font-variant: small-caps; }
 .culina-meta dt::after { content: ":"; }
 .culina-meta dd { margin: 0; font-style: italic; }
+/* Source links wrap — a URL is one unbreakable word and would stretch
+   the row past the card; the renderer tags them culina-meta-url. */
+.culina-meta .culina-meta-url { white-space: normal; overflow-wrap: anywhere; }
 
 /* Ingredients: multi-columned like the steps — the shared mise. */
 ul.culina-ingredients {

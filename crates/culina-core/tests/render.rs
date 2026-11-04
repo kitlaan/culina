@@ -235,6 +235,28 @@ fn notes_stay_out_of_jsonld() {
     assert!(!s.contains("save the bone"), "{s}");
 }
 
+// --- Meta rows (design.md, `>> source:`) ---
+
+#[test]
+fn url_meta_values_carry_the_wrap_class() {
+    // A URL is one unbreakable word; the class is the hook stylesheets
+    // use to let it wrap instead of stretching the row past the card.
+    let html = fragment(
+        ">> title: T\n>> servings: 1\n>> source: https://example.com/a-long-source-link\n>> dish: soup\n\n:mix => _dough.\n",
+    );
+    assert!(
+        html.contains(
+            "<dd class=\"culina-meta-value culina-meta-url\">https://example.com/a-long-source-link</dd>"
+        ),
+        "url value tagged: {html}"
+    );
+    assert!(
+        html.contains("<dd class=\"culina-meta-value\">soup</dd>"),
+        "plain values stay untagged: {html}"
+    );
+    assert_eq!(html.matches("culina-meta-url").count(), 1, "{html}");
+}
+
 // --- Images (design.md, key semantics) ---
 
 #[test]

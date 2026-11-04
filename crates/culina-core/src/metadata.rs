@@ -84,6 +84,22 @@ pub fn validate(doc: &Document, lex: &Lexicon) -> (Vec<ParseError>, Vec<String>)
             }
         }
     }
+    // design.md (Metadata): `title` and `servings` are required. Pushed
+    // after the line loop so a line-level error still reports first —
+    // the author fixes the line, re-runs, and then meets this one.
+    let missing: Vec<&str> = ["title", "servings"]
+        .into_iter()
+        .filter(|k| !seen.contains(k))
+        .collect();
+    if !missing.is_empty() {
+        errors.push(ParseError::MissingRequiredMeta {
+            missing: missing
+                .iter()
+                .map(|k| format!(">> {k}:"))
+                .collect::<Vec<_>>()
+                .join(" and "),
+        });
+    }
     (errors, warnings)
 }
 

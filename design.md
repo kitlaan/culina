@@ -317,7 +317,8 @@ call — one opaque node that produces a thread:
   notes in a trailing block, where the source corpus had them. The
   canonical form preserves authored position, and position carries no
   semantics: every key is document-scope, whatever block it sits in.
-- **Required:** `title`, `servings`. Servings is the scaling baseline.
+- **Required:** `title`, `servings`. Servings is the scaling baseline. A
+  file missing either fails validation — the error names what to add.
 - Metadata is also the recipe's public interface: a referencing parent scales
   against `>> servings` and consults the yield policy. See
   [Sub-recipe references](#sub-recipe-references).

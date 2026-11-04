@@ -98,6 +98,9 @@ pub enum ParseError {
         key: String,
         found: String,
     },
+
+    #[error("missing required metadata — add {missing}")]
+    MissingRequiredMeta { missing: String },
 }
 
 impl ParseError {
@@ -128,7 +131,9 @@ impl ParseError {
             | ParseError::MetaCardinality { line, .. }
             | ParseError::MetaLiteral { line, .. }
             | ParseError::MetaShape { line, .. } => *line,
-            ParseError::BadLexicon { .. } => 0,
+            // Document-level: absence has no line to point at, so the
+            // miette caret lands on the file start.
+            ParseError::BadLexicon { .. } | ParseError::MissingRequiredMeta { .. } => 0,
         }
     }
 }

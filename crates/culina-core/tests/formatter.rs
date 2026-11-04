@@ -40,12 +40,14 @@ fn existing_stamp_refreshes_in_place() {
 }
 
 #[test]
-fn fragments_never_gain_metadata() {
-    // No metadata block: the formatter maintains the stamp, it does not
-    // create metadata.
-    let out = canonicalize(":a\n\n\n:b\n", Some("2026-11-01")).unwrap();
-    assert_eq!(out, ":a\n:b\n");
-    assert!(!out.contains("modified"));
+fn step_only_fragments_are_not_recipes() {
+    // Required metadata (design.md, Metadata): a doc with no `>>` block
+    // fails validation. The formatter maintains stamps; it never
+    // creates metadata — and now it never gets the chance to.
+    let err = canonicalize(":a\n\n\n:b\n", None).unwrap_err().to_string();
+    assert!(err.contains("missing required metadata"), "{err}");
+    assert!(err.contains("title"), "{err}");
+    assert!(err.contains("servings"), "{err}");
 }
 
 #[test]
@@ -62,17 +64,17 @@ fn trailing_metadata_block_stamps_too() {
 
 #[test]
 fn stdin_mode_never_stamps() {
-    let out = canonicalize(">> title: T\n\n\n:mix => _dough\n\n", None).unwrap();
+    let out = canonicalize(">> title: T\n>> servings: 1\n\n\n:mix => _dough\n\n", None).unwrap();
     assert!(!out.contains("modified"), "{out}");
 }
 
 #[test]
 fn continuation_indent_normalizes_to_two_spaces() {
-    let tabbed = ":mix => _dough\n\tsome note\n";
+    let tabbed = ">> title: T\n>> servings: 1\n\n:mix => _dough\n\tsome note\n";
     let out = canonicalize(tabbed, None).unwrap();
     assert!(out.contains("\n  some note\n"), "{out}");
 
-    let four = ":mix => _dough\n    some note\n";
+    let four = ">> title: T\n>> servings: 1\n\n:mix => _dough\n    some note\n";
     let out = canonicalize(four, None).unwrap();
     assert!(out.contains("\n  some note\n"), "{out}");
 }
@@ -80,19 +82,20 @@ fn continuation_indent_normalizes_to_two_spaces() {
 #[test]
 fn canonicalize_is_idempotent_across_spelling_variants() {
     // All spellings converge to one canonical form.
+    let prefix = ">> title: T\n>> servings: 1\n\n";
     let variants = [
-        ":mix => _dough.\n",
-        ":mix → _dough.\n",
-        ":mix => _dough.  \n",
-        ":{mix} => _dough.\n",
-        ":mix => _{dough}.\n",
+        format!("{prefix}:mix => _dough.\n"),
+        format!("{prefix}:mix → _dough.\n"),
+        format!("{prefix}:mix => _dough.  \n"),
+        format!("{prefix}:{{mix}} => _dough.\n"),
+        format!("{prefix}:mix => _{{dough}}.\n"),
     ];
-    for v in variants {
+    for v in &variants {
         let once = canonicalize(v, None).unwrap();
         let twice = canonicalize(&once, None).unwrap();
         assert_eq!(once, twice, "idempotence on {v:?}");
     }
-    let first = canonicalize(variants[0], None).unwrap();
+    let first = canonicalize(&variants[0], None).unwrap();
     for v in &variants[1..] {
         assert_eq!(
             canonicalize(v, None).unwrap(),

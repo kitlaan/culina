@@ -174,3 +174,63 @@ fn authored_prose_is_escaped() {
     assert!(html.contains(&amp_entity), "ampersand escaped: {html}");
     assert!(!html.contains("<script>alert"), "no raw script tag: {html}");
 }
+
+// --- Notes (design.md, key semantics) ---
+
+#[test]
+fn notes_render_after_the_method() {
+    let html = fragment(
+        ">> title: T\n>> servings: 1\n>> note: Make a day ahead; the braise deepens overnight.\n>> note: Save the bone & the oil\n\n:mix @{flour|1 cup} => _dough.\n",
+    );
+    assert!(html.contains("<aside class=\"culina-notes\">"), "{html}");
+    assert!(
+        html.contains(
+            "<p class=\"culina-note\">Make a day ahead; the braise deepens overnight.</p>"
+        ),
+        "one paragraph per note line: {html}"
+    );
+    // Note prose escapes like all authored prose.
+    let amp = char::from_u32(0x26).unwrap();
+    assert!(
+        html.contains(&format!(
+            "<p class=\"culina-note\">Save the bone {amp}amp; the oil</p>"
+        )),
+        "ampersand escaped: {html}"
+    );
+    // The aside trails the method div.
+    let method = html.find("culina-method").expect("method div");
+    let notes = html.find("culina-notes").expect("notes aside");
+    assert!(method < notes, "notes after the method: {html}");
+    // Notes are body content, not a meta row.
+    assert!(
+        !html.contains("<dt class=\"culina-meta-key\">note</dt>"),
+        "notes never ride the meta dl: {html}"
+    );
+    // No authored notes, no aside.
+    let bare = fragment(">> title: T\n>> servings: 1\n\n:mix => _dough.\n");
+    assert!(!bare.contains("culina-notes"), "{bare}");
+}
+
+#[test]
+fn note_commas_are_content() {
+    // Prose never splits — "A, B, C" is one note, not three.
+    let (doc, _, _) = prepare(
+        ">> title: T\n>> servings: 1\n>> note: A, B, C\n\n:mix => _dough.\n",
+        None,
+    )
+    .unwrap();
+    let model = card(&doc);
+    assert_eq!(model.notes, vec!["A, B, C".to_string()]);
+}
+
+#[test]
+fn notes_stay_out_of_jsonld() {
+    // schema.org has no honest slot for notes — the JSON-LD omits them.
+    let (doc, _, _) = prepare(
+        ">> title: T\n>> servings: 1\n>> note: save the bone\n\n:mix => _dough.\n",
+        None,
+    )
+    .unwrap();
+    let s = serde_json::to_string(&jsonld(&card(&doc))).unwrap();
+    assert!(!s.contains("save the bone"), "{s}");
+}

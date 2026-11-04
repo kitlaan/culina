@@ -321,7 +321,7 @@ governs parsing and separation; the cardinality governs repetition.
 | Form | Keys | Behavior |
 |---|---|---|
 | Token | `keywords`, `cuisine`, `course`, `diet`, `dish`, `author` | short, comma-free; comma lists |
-| Prose | `title`, `summary`, `source`, `aka` | may contain commas; line lists |
+| Prose | `title`, `summary`, `source`, `aka`, `note` | may contain commas; line lists |
 | Reference | `image` | path or URL, validated; line lists |
 | Literal | `servings` (number or range), `date` (date + qualifier lexicon), `time` (duration), `units` (enum), `lang` (BCP 47), `modified` (timestamp) | machine-validated; bad form errors |
 | Definition | `unit` (`name = value`) | line list with internal structure |
@@ -359,6 +359,7 @@ reads. If the two ever drift, regenerate the registry from the rule.
 | `dish` | Token | many | ✓ | "makes both," not "also called" |
 | `aka` | Prose | many | ✗ | script-dependent separators |
 | `image` | Reference | many | ✗ | first = representative |
+| `note` | Prose | many | ✗ | whole-recipe, never step-anchored |
 | `units` | Literal | one | — | `metric` / `imperial` / `us` |
 | `lang` | Literal | one | — | |
 | `makes` | Token | many | ✓ | ordered: export/binding order; also display order |
@@ -376,7 +377,7 @@ should not create a variant format, but silence would hide typos
 | Class | Keys | Owner |
 |---|---|---|
 | Required | `title`, `servings` | author |
-| Descriptive | `author`, `date`, `source`, `summary`, `keywords`, `cuisine`, `course`, `diet`, `dish`, `aka`, `image`, `units`, `lang`, `makes` | author |
+| Descriptive | `author`, `date`, `source`, `summary`, `keywords`, `cuisine`, `course`, `diet`, `dish`, `aka`, `image`, `note`, `units`, `lang`, `makes` | author |
 | Tool-maintained | `modified` | formatter |
 | Overrides | `time`, `yield-scales`; further scaling policy reserved | author |
 | Registry | `unit` | author |
@@ -407,6 +408,11 @@ Two admission tests decide what may exist:
   source.
 - `>> image:` — reference, line list. First listed is the representative
   image (schema.org array semantics).
+- `>> note:` — free prose, line list. The home for whole-recipe notes the
+  body cannot hold: variants, storage, what the leftovers are good for. A
+  note never attaches to a step or thread — step tips stay as
+  parentheticals. Renderers show the set after the method; schema.org has
+  no honest slot, so JSON-LD omits it.
 - `>> author:` — token list. Recommended shape `Name <email or URL>`, never
   mandated: parse-or-note extracts name + contact when the shape matches, and
   "grandma" renders as free text. Keep display names in natural order
@@ -472,6 +478,7 @@ The Child coq au vin, faithful transcription, touching every form:
 >> source: https://archive.org/details/masteringartoffr01chil
 >> image: photos/coq-top.jpg
 >> image: photos/braise.jpg
+>> note: Make a day ahead; the braise deepens overnight.
 >> unit: verre = 90 ml
 >> modified: 2026-11-01
 ```
@@ -485,7 +492,8 @@ What fails:
 ```
 
 One silent non-error to know: `>> source: A, B, C` parses as **one**
-attribution, because prose never splits. Two sources are two lines.
+attribution, because prose never splits. Two sources are two lines; every
+prose key (`aka`, `note`) behaves the same.
 
 Key names stay human. The HTML renderer maps to schema.org at JSON-LD emit
 time (`summary` → `description`, `date` → `datePublished`, `cuisine` →

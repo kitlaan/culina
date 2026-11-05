@@ -169,6 +169,8 @@ li.culina-step::marker { color: var(--accent); font-weight: 600; }
     max-width: none;
     padding: 0;
   }
+  /* Index cards keep their border on paper; the shadow is theater. */
+  li.culina-recipe-index-item { box-shadow: none; break-inside: avoid; }
   li.culina-step { break-inside: avoid; }
   /* Tiles are a screen economy; paper wants the full photos. */
   .culina-gallery { display: block; }
@@ -188,7 +190,26 @@ li.culina-optional .culina-ing-amounts::after { content: " (optional)"; font-sty
 /* The index page keeps the same card feel. */
 header.culina-site-header { max-width: 640px; margin: 0 auto; text-align: center; }
 header.culina-site-header h1 { font-weight: 500; letter-spacing: 0.06em; }
-ul.culina-recipe-index { list-style: none; max-width: 640px; margin: 8px auto; padding: 0; }
-li.culina-recipe-index-item { padding: 8px 0; text-align: center; }
+
+/* One card per recipe — the recipe card's paper, rule, and shadow,
+   scaled down. A plain padded list reads fine for a handful of recipes;
+   past a page the items blur without a boundary. */
+ul.culina-recipe-index {
+  list-style: none;
+  max-width: 640px;
+  margin: 8px auto;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+li.culina-recipe-index-item {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 2px 2px 0 rgba(60, 48, 20, 0.12);
+  padding: 12px 20px;
+  text-align: center;
+}
 li.culina-recipe-index-item a { color: var(--ink); text-decoration: none; font-weight: 600; }
-.culina-recipe-index-summary { display: block; color: var(--faded); font-style: italic; }
+li.culina-recipe-index-item a:hover { text-decoration: underline; }
+/* Not the body's 1.7 — prose air reads loose on a wrapped supporting line. */
+.culina-recipe-index-summary { display: block; color: var(--faded); font-style: italic; line-height: 1.3; }

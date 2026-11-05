@@ -62,7 +62,7 @@ dl.culina-meta {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 4px 18px;
+  gap: 8px 18px;
   margin: 0 auto 22px;
   text-align: center;
   border-bottom: 1px solid var(--rule);
@@ -72,10 +72,17 @@ dl.culina-meta {
 .culina-meta dt { color: var(--faded); font-variant: small-caps; }
 .culina-meta dt::after { content: ":"; }
 .culina-meta dd { margin: 0; }
-.culina-meta .culina-meta-value { font-style: italic; white-space: nowrap; }
-/* Source links wrap — a URL is one unbreakable word and would stretch
-   the row past the card; the renderer tags them culina-meta-url. */
-.culina-meta .culina-meta-url { white-space: normal; overflow-wrap: anywhere; }
+/* A pair wraps as a unit: the key never strands at a line end, but a long
+   value may wrap beside it. */
+.culina-meta-item { display: flex; gap: 0.3em; max-width: 100%; text-align: left; line-height: 1.35; }
+.culina-meta .culina-meta-value { font-style: italic; }
+.culina-meta a { color: inherit; text-decoration: underline dotted; }
+.culina-meta .culina-meta-url { overflow-wrap: anywhere; }
+@media print {
+  /* The host is the screen text; paper needs the whole address. */
+  .culina-meta-url a { text-decoration: none; }
+  .culina-meta-url a::after { content: " (" attr(href) ")"; font-style: normal; }
+}
 
 /* "Ingredients" heading, injected by CSS — the HTML stays semantic. */
 ul.culina-ingredients { position: relative; margin: 26px 0 30px; padding: 0; list-style: none; }

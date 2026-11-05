@@ -136,6 +136,20 @@ fn is_url(s: &str) -> bool {
     s.starts_with("http://") || s.starts_with("https://")
 }
 
+/// The display host of a URL: authority without credentials or a leading
+/// `www.`. Falls back to the whole string when no host can be read.
+fn url_host(url: &str) -> &str {
+    let rest = url.split_once("://").map_or(url, |(_, r)| r);
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+    let host = authority.rsplit('@').next().unwrap_or(authority);
+    let host = host.strip_prefix("www.").unwrap_or(host);
+    if host.is_empty() {
+        url
+    } else {
+        host
+    }
+}
+
 fn meta_label(key: &str) -> Option<&'static str> {
     Some(match key {
         "cuisine" => "cuisine",
@@ -426,19 +440,22 @@ pub fn html_fragment(card: &CardModel) -> String {
     if !card.meta.is_empty() {
         out.push_str("<dl class=\"culina-meta\">\n");
         for (label, value) in &card.meta {
-            // A URL is one unbreakable word; the class is the hook
-            // stylesheets use to let it wrap instead of stretching the
-            // row past the card (design.md, `>> source:`).
-            let value_cls = if is_url(value) {
-                "culina-meta-value culina-meta-url"
+            // A URL is one unbreakable word: screens get a link whose
+            // text is the host, and the full address rides the href for
+            // print stylesheets (design.md, `>> source:`).
+            let (value_cls, value_html) = if is_url(value) {
+                (
+                    "culina-meta-value culina-meta-url",
+                    format!("<a href=\"{}\">{}</a>", esc(value), esc(url_host(value))),
+                )
             } else {
-                "culina-meta-value"
+                ("culina-meta-value", esc(value))
             };
             out.push_str(&format!(
-                "<dt class=\"culina-meta-key\">{}</dt><dd class=\"{}\">{}</dd>\n",
+                "<div class=\"culina-meta-item\"><dt class=\"culina-meta-key\">{}</dt><dd class=\"{}\">{}</dd></div>\n",
                 esc(label),
                 value_cls,
-                esc(value)
+                value_html
             ));
         }
         out.push_str("</dl>\n");

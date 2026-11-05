@@ -120,6 +120,7 @@ li.culina-ingredient {
 .culina-ing-name::after { content: ": "; font-weight: 400; }
 .culina-ing-amounts { color: var(--accent); }
 .culina-ing-notes { color: #666; font-style: italic; }
+.culina-ing-breakdown { display: none; }  /* the card keeps the total */
 .culina-optional .culina-ing-name::after { content: " (opt): "; font-weight: 400; }
 
 /* Sections: tiny small-caps, no ornament — the card is a working document. */
@@ -153,6 +154,12 @@ li.culina-step::marker {
 }
 
 .culina-ref { font-weight: 600; }
+/* Summed ingredients: the list carries the total, so the card's steps
+   keep each portion where it is used. */
+.culina-ref-summed[data-amounts]::after {
+  content: " (" attr(data-amounts) ")";
+  color: var(--accent); font-weight: 400; font-style: italic;
+}
 
 /* Step durations show inline on the card — the cook needs them visible. */
 li.culina-step[data-duration]::after {

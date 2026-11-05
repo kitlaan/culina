@@ -10,6 +10,7 @@
 
 use serde_json::json;
 
+use crate::amounts::{summarize, Amount, Summary};
 use crate::ast::{Block, Document, Seg, Sigil, Step};
 use crate::fields::FieldKind;
 
@@ -31,7 +32,7 @@ pub struct CardModel {
     pub notes: Vec<String>,
     /// Section title (`None` for steps before any header) and its steps.
     pub sections: Vec<(Option<String>, Vec<StepModel>)>,
-    /// Aggregated ingredients: (name, amounts, notes, optional).
+    /// Aggregated ingredients, one per name, amounts summed across uses.
     pub ingredients: Vec<Ingredient>,
 }
 
@@ -75,10 +76,14 @@ pub enum RefKind {
 #[derive(Debug)]
 pub struct Ingredient {
     pub name: String,
-    /// Amounts as written — raw field text keeps authored fractions
-    /// ("1 1/3 tsp") and hedges ("about 110 g") intact. Exact summing
-    /// waits for the scaling engine's arithmetic.
+    /// Amounts as written, flat — raw field text keeps authored fractions
+    /// ("1 1/3 tsp") and hedges ("about 110 g") intact.
     pub amounts: Vec<String>,
+    /// The same amounts grouped per measured use: a use's equivalents
+    /// ("2 1/2 cups", "600 g") stay together so uses can add up.
+    pub uses: Vec<Vec<Amount>>,
+    /// Total and breakdown across `uses` (see `amounts::summarize`).
+    pub summary: Summary,
     pub notes: Vec<String>,
     pub optional: bool,
 }
@@ -125,8 +130,28 @@ pub fn card(doc: &Document) -> CardModel {
             _ => {}
         }
     }
+    for i in &mut ingredients {
+        i.summary = summarize(&i.uses);
+    }
     card.ingredients = ingredients;
     card
+}
+
+/// What the ingredient list shows for an amount: the primary text, and a
+/// breakdown when the primary is a total. One measured use shows as
+/// written; several show their total with the breakdown behind it, or the
+/// breakdown alone when no total sums cleanly.
+fn amount_display(i: &Ingredient) -> (Option<String>, Option<String>) {
+    if i.uses.len() >= 2 {
+        match &i.summary.total {
+            Some(t) => (Some(t.clone()), Some(i.summary.breakdown.clone())),
+            None => (Some(i.summary.breakdown.clone()), None),
+        }
+    } else if i.amounts.is_empty() {
+        (None, None)
+    } else {
+        (Some(i.amounts.join(", ")), None)
+    }
 }
 
 /// URL shape per design.md's `>> source:` contract — "a value that parses
@@ -177,10 +202,14 @@ fn collect_ingredients(step: &Step, out: &mut Vec<Ingredient>) {
                 continue;
             }
             let mut amounts = Vec::new();
+            let mut use_amounts = Vec::new();
             let mut notes = Vec::new();
             for f in &t.fields {
                 match f.kind {
-                    FieldKind::Quantity(_) => amounts.push(f.raw.clone()),
+                    FieldKind::Quantity(_) => {
+                        amounts.push(f.raw.clone());
+                        use_amounts.extend(Amount::from_field(f));
+                    }
                     FieldKind::Note => notes.push(f.raw.clone()),
                 }
             }
@@ -190,6 +219,9 @@ fn collect_ingredients(step: &Step, out: &mut Vec<Ingredient>) {
             match out.iter_mut().find(|i| i.name == t.name) {
                 Some(existing) => {
                     existing.amounts.extend(amounts);
+                    if !use_amounts.is_empty() {
+                        existing.uses.push(use_amounts);
+                    }
                     for n in notes {
                         if !existing.notes.contains(&n) {
                             existing.notes.push(n);
@@ -199,6 +231,15 @@ fn collect_ingredients(step: &Step, out: &mut Vec<Ingredient>) {
                 None => out.push(Ingredient {
                     name: t.name.clone(),
                     amounts,
+                    uses: if use_amounts.is_empty() {
+                        Vec::new()
+                    } else {
+                        vec![use_amounts]
+                    },
+                    summary: Summary {
+                        total: None,
+                        breakdown: String::new(),
+                    },
                     notes,
                     optional: t.optional,
                 }),
@@ -388,9 +429,9 @@ pub fn jsonld(card: &CardModel) -> serde_json::Value {
 
 fn ingredient_line(i: &Ingredient) -> String {
     let mut line = i.name.clone();
-    if !i.amounts.is_empty() {
+    if let (Some(amounts), _) = amount_display(i) {
         line.push_str(": ");
-        line.push_str(&i.amounts.join(", "));
+        line.push_str(&amounts);
     }
     if !i.notes.is_empty() {
         line.push_str(", ");
@@ -403,6 +444,13 @@ fn ingredient_line(i: &Ingredient) -> String {
 /// Meta values ride the article as data attributes — `data-cuisine` is the
 /// color-coded-tab hook for print targets.
 pub fn html_fragment(card: &CardModel) -> String {
+    // Ingredients used in two or more measured steps (see `Ingredient::uses`).
+    let summed: std::collections::HashSet<&str> = card
+        .ingredients
+        .iter()
+        .filter(|i| i.uses.len() >= 2)
+        .map(|i| i.name.as_str())
+        .collect();
     let cuisine = card
         .meta
         .iter()
@@ -468,16 +516,23 @@ pub fn html_fragment(card: &CardModel) -> String {
                 "<li class=\"culina-ingredient{optional}\"><span class=\"culina-ing-name\">{}</span>",
                 esc(&i.name)
             ));
-            if !i.amounts.is_empty() {
+            let (amounts, breakdown) = amount_display(i);
+            if let Some(a) = amounts {
                 out.push_str(&format!(
                     " <span class=\"culina-ing-amounts\">{}</span>",
-                    esc(&i.amounts.join(", "))
+                    esc(&a)
                 ));
             }
             if !i.notes.is_empty() {
                 out.push_str(&format!(
                     " <span class=\"culina-ing-notes\">{}</span>",
                     esc(&i.notes.join(", "))
+                ));
+            }
+            if let Some(b) = breakdown {
+                out.push_str(&format!(
+                    " <span class=\"culina-ing-breakdown\">{}</span>",
+                    esc(&b)
                 ));
             }
             out.push_str("</li>\n");
@@ -509,7 +564,14 @@ pub fn html_fragment(card: &CardModel) -> String {
                         SegModel::Ref { kind, name, values } => {
                             let (class, attr) = match kind {
                                 RefKind::Ingredient => (
-                                    "culina-ref-ingredient",
+                                    // A summed ingredient's list line shows
+                                    // the total, so each step's own portion
+                                    // is the hook sheets show inline.
+                                    if !values.is_empty() && summed.contains(name.as_str()) {
+                                        "culina-ref-ingredient culina-ref-summed"
+                                    } else {
+                                        "culina-ref-ingredient"
+                                    },
                                     if values.is_empty() {
                                         String::new()
                                     } else {

@@ -172,6 +172,57 @@ Worked cases:
 - Output dials are orthogonal to layout: spelling length (`t.` / `tsp` /
   `teaspoon`), unit system (SI: `1050 g` → `1.05 kg`), scale factor.
 
+### Aggregating an ingredient
+
+An ingredient used in several steps carries one amount list per use. A
+use's equivalents (`2 1/2 cups`, `600 g`) stay together, and the uses add
+up. The renderer shows the total, with the breakdown behind it:
+
+```
+water ........ 2 3/4 cups + 1 tbsp + 1 tsp, 680 g
+               2 1/2 cups (600 g) + 1/3 cup (80 g)
+```
+
+- **A bucket totals only when every use carries it.** Mass, volume, and
+  length are buckets, and so is each countable unit and the plain count.
+  A mass amount on one use out of four would undercount the other three,
+  so the mass bucket is left out and the breakdown still shows it.
+  Time and temperature are never summed.
+- **The total prefers the units the author wrote.** Volume written in
+  cups and tablespoons totals in cups and tablespoons; volume written
+  only in spoons stays in spoons. Only when the written units cannot
+  state the total exactly does volume fall through to the spoons below
+  its smallest written unit: 5/6 cup is not a measure, so cups alone give
+  way to `3/4 cup + 1 tbsp + 1 tsp`.
+- **Cups say what a cook measures with.** A cup takes a quarter, third,
+  half, two thirds, or three quarters, and the spoons carry whatever is
+  left (less than a quarter cup): 10-12 tbsp reads `1/2 cup + 2 tbsp to
+  3/4 cup`. Of several wordings, the one with the fewest parts, then the
+  fewest fractions, then the larger spoon wins. Spoons take whole units,
+  and only the smallest unit takes a fraction of itself (`2 tbsp + 1 1/2
+  tsp`).
+- **Fractions follow the author.** A bucket where any amount was written
+  with a `/` totals in mixed numbers over halves, thirds, quarters, and
+  eighths; otherwise it totals in short decimals (`680 g`). A total no
+  measure can state exactly is dropped, never rounded.
+- **Ranges add bound by bound**; `2-3 tbsp` plus `1 tbsp` is `3-4 tbsp`.
+  An `about` hedge on any use makes the total `~`.
+- **One measured use shows as written**, with no total or breakdown. When
+  no bucket totals, the breakdown stands in as the amount. Uses with no
+  amount add nothing and are not listed.
+
+A total on the list says how much to gather, not how much goes where, so
+steps that name a summed ingredient show their own portion inline
+(`water (1/3 cup, 80 g)`). The renderer marks those refs
+`culina-ref-summed` — only ingredients with two or more measured uses —
+and the amounts ride `data-amounts` as ever; the stylesheet decides how
+they show.
+
+The sum lives in `culina-core` (`amounts::summarize`) so the scaling
+engine can reuse it; the renderer is its first caller. The HTML carries
+the total in `culina-ing-amounts` and the breakdown in
+`culina-ing-breakdown`; JSON-LD `recipeIngredient` carries the total.
+
 ## Threads and the DAG
 
 The core idea. Steps are nodes; products are threads.
@@ -827,8 +878,10 @@ two-track join at serve.
 
 Specced, not yet built:
 
-- Scaling engine arithmetic — exact summing across units, rationals for
-  fraction-exact results, pan-bound warnings.
+- Scaling engine arithmetic — rationals for fraction-exact results,
+  pan-bound warnings. Display summing of repeated ingredients is built
+  (see [Aggregating an ingredient](#aggregating-an-ingredient)); scaling
+  reuses it.
 - Sub-recipe resolution across files — the parser validates single-file DAGs;
   `from <path>` is a provenance note until the resolver ships.
 - Per-language cores beyond English — the channel schema is stable; the

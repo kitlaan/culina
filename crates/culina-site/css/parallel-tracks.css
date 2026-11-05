@@ -95,10 +95,14 @@ div.culina-method h3.culina-section {
 }
 div.culina-method h3.culina-section:first-of-type { break-before: auto; }
 ol.culina-steps { break-inside: avoid-column; padding-left: 18px; margin: 0 0 14px; }
-li.culina-step { margin: 10px 0; font-size: 0.95em; }
+li.culina-step { margin: 10px 0; font-size: 0.95em; line-height: 1.45; }
 li.culina-step::marker { color: var(--accent); font-weight: 600; }
 
+/* Ingredients are fetched, so they carry the weight; threads are things
+   already made, so they lean; tools sit back. */
 .culina-ref { font-weight: 600; }
+.culina-ref-thread { font-weight: 400; font-style: italic; }
+.culina-ref-tool { font-weight: 400; }
 .culina-ref-ingredient[data-amounts]::after {
   content: " (" attr(data-amounts) ")";
   color: var(--accent); font-weight: 400; font-style: italic;

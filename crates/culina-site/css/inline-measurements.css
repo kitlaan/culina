@@ -138,7 +138,7 @@ h3.culina-section::before { content: "~ "; color: var(--faded); }
 h3.culina-section::after  { content: " ~"; color: var(--faded); }
 
 ol.culina-steps { padding-left: 26px; margin: 0; }
-li.culina-step { margin: 12px 0; }
+li.culina-step { margin: 12px 0; line-height: 1.45; }
 li.culina-step::marker { color: var(--accent); font-weight: 600; }
 
 /* Photos scale to the card's content box; intrinsic sizes overflow it. */
@@ -184,7 +184,11 @@ li.culina-step::marker { color: var(--accent); font-weight: 600; }
   .culina-photo { break-inside: avoid; }
 }
 
+/* Ingredients are fetched, so they carry the weight; threads are things
+   already made, so they lean; tools sit back. */
 .culina-ref { font-weight: 600; }
+.culina-ref-thread { font-weight: 400; font-style: italic; }
+.culina-ref-tool { font-weight: 400; }
 
 /* Optional ingredients noted with a lighter hand. */
 /* Optional ingredients: the name is the anchor for the leader, so the

@@ -4,6 +4,7 @@
 //! field grammar and DAG validation. Every phase ends with a round-trip on
 //! the stress fixtures in `tests/fixtures/`.
 
+pub mod amounts;
 pub mod ast;
 pub mod dag;
 pub mod error;

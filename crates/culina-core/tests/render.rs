@@ -333,3 +333,69 @@ fn image_jsonld_is_a_string_for_one_and_an_array_for_more() {
         serde_json::json!(["a.jpg", "b.jpg"])
     );
 }
+
+// --- Ingredient aggregation (design.md, Quantities and units) ---
+
+#[test]
+fn repeated_ingredients_show_a_total_with_the_breakdown_behind_it() {
+    let html = fragment(
+        ">> title: T\n>> servings: 1\n\n:mix @{water|2 1/2 cups|600 g}, @{salt|1 tsp} => _a.\n:pour @{water|1/3 cup|80 g} into _a.\n",
+    );
+    assert!(
+        html.contains(
+            "<span class=\"culina-ing-amounts\">2 3/4 cups + 1 tbsp + 1 tsp, 680 g</span>"
+        ),
+        "total leads: {html}"
+    );
+    assert!(
+        html.contains(
+            "<span class=\"culina-ing-breakdown\">2 1/2 cups (600 g) + 1/3 cup (80 g)</span>"
+        ),
+        "breakdown follows: {html}"
+    );
+    // One measured use reads as written, with no breakdown.
+    assert!(
+        html.contains("<span class=\"culina-ing-amounts\">1 tsp</span>"),
+        "{html}"
+    );
+    assert_eq!(html.matches("culina-ing-breakdown").count(), 1, "{html}");
+}
+
+#[test]
+fn steps_mark_the_portions_of_a_summed_ingredient() {
+    // The list line shows the total, so each step's own amount is what the
+    // cook needs; sheets show it from `data-amounts` on the marked ref.
+    let html = fragment(
+        ">> title: T\n>> servings: 1\n\n:mix @{water|2 1/2 cups|600 g}, @{salt|1 tsp} => _a.\n:pour @{water|1/3 cup|80 g} into _a.\n",
+    );
+    assert!(
+        html.contains(
+            "<span class=\"culina-ref culina-ref-ingredient culina-ref-summed\" data-amounts=\"2 1/2 cups, 600 g\">water</span>"
+        ),
+        "first portion: {html}"
+    );
+    assert!(
+        html.contains(
+            "<span class=\"culina-ref culina-ref-ingredient culina-ref-summed\" data-amounts=\"1/3 cup, 80 g\">water</span>"
+        ),
+        "second portion: {html}"
+    );
+    assert!(
+        html.contains(
+            "<span class=\"culina-ref culina-ref-ingredient\" data-amounts=\"1 tsp\">salt</span>"
+        ),
+        "single use stays bare: {html}"
+    );
+}
+
+#[test]
+fn unsummable_uses_show_the_breakdown_as_the_amount() {
+    let html = fragment(
+        ">> title: T\n>> servings: 1\n\n:mix @{flour|1 cup} => _a.\n:add @{flour|100 g} to _a.\n",
+    );
+    assert!(
+        html.contains("<span class=\"culina-ing-amounts\">1 cup + 100 g</span>"),
+        "{html}"
+    );
+    assert!(!html.contains("culina-ing-breakdown"), "{html}");
+}

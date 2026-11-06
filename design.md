@@ -236,6 +236,12 @@ The core idea. Steps are nodes; products are threads.
 - **A step with no `_` and no `=>` is a setup step**, outside the food DAG:
   `:preheat #{oven|425F}`. Tool-state sets are the other example:
   `:lower #{oven|375F}` between two bakes.
+- **A step that uses ingredients but makes nothing warns**, unless it is
+  the last step. `:spread @{oil|2 tbsp} on #{sheet pan}.` gives the oiled
+  pan no name, so the step that pours dough onto it cannot say so, and
+  the step floats free of the graph. The warning names the line and the
+  fix: produce a thread (`=> _pan`) and consume it where it is used.
+  It warns, not errors: the recipe still reads and renders.
 - **Evolution without renames:** `:{rest|1 hour} _dough` touches the live
   thread. Three fold/rest cycles keep the name `_laminate`.
 - **Rename = rebind:** `:shape _dough into a loaf => _loaf`.

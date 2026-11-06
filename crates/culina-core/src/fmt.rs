@@ -58,7 +58,8 @@ pub fn prepare(
     let lex = resolve_lexicon(input, collection)?;
     let doc = parse::parse_with(input, &lex)?;
     dag::validate(&doc)?;
-    let (errors, warnings) = crate::metadata::validate(&doc, &lex);
+    let (errors, mut warnings) = crate::metadata::validate(&doc, &lex);
+    warnings.extend(dag::warnings(&doc));
     if let Some(e) = errors.into_iter().next() {
         return Err(e);
     }

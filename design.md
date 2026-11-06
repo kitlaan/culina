@@ -712,7 +712,8 @@ The collection's policy file lives at the collection root, named
 for the tool, not for browsing, and the root stays uncluttered. The
 visible name stays valid, so collections that started before the
 dotfile do not break. `[site]` carries generator settings (title,
-description, grid, layout), `[lexicon]` `file = "overlay.toml"` points at
+description, grid, layout, source, source_link, source_link_text,
+repository, footer), `[lexicon]` `file = "overlay.toml"` points at
 the lexicon overlay. Fields are added when real collections need them —
 the same admission discipline as the metadata registry.
 
@@ -734,6 +735,36 @@ the same admission discipline as the metadata registry.
   copy, else `static/fonts/AtkinsonHyperlegibleNext.woff2` if the
   collection ships one, else the system sans. A font is a choice, not a
   requirement, so its absence is silent.
+- `source = true` puts the recipe's own `.culina` text on its page, in a
+  closed `<details class="culina-source">` after the card. The source is
+  embedded, not linked: hosts serve unknown extensions as downloads
+  (`application/octet-stream`), so a linked copy would not open in a
+  browser, and the page stays one self-contained artifact. The text is
+  HTML-escaped and otherwise byte-exact — culinafmt never wraps and the
+  page does not either; soft-wrapped display rows hang past their
+  line's start, so a wrapped row never reads as an authored break.
+- `source_link = "…/{path}"` links each recipe page to its file in the
+  repository. The generator substitutes the recipe's path from the
+  collection root for `{path}` — the one fact it knows; host, owner,
+  branch, and any subdirectory the collection sits in are the
+  collection's to write, so no repo layout is inferred. A template
+  without `{path}` fails the build, naming the fix — a silently broken
+  link is the same degrade as an unread one. The link rides in the
+  footer, beside the repository link; the index's footer carries none,
+  for the index has no one recipe to point at. The link's words are
+  the recipe's path by default — a quiet name beside the repository
+  name, which the forge's mark already identifies — and
+  `[site] source_link_text` says otherwise, with `{path}` inside it
+  substituted.
+- `repository = "url"` and `footer = "text"` fill a
+  `<footer class="culina-site-footer">` at the bottom of every page, index
+  included: the repository as an icon-and-text link, the footer text as
+  escaped prose beside it. The link text is the `owner/repo` tail of the
+  URL, or the whole URL when it has no such tail. The icon is the forge's
+  mark — GitHub or GitLab, picked by host — and a neutral link icon for
+  anything else: the tail of forges is long, and a wrong mark is worse
+  than a plain one. The mark is inline SVG on `currentColor`, so each
+  card sheet's link colour carries it.
 
 The filename is policy, not a lookup detail. A policy file that the
 tool does not read degrades the site without a trace, and an unread

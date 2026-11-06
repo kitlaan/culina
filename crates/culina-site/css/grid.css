@@ -1,0 +1,141 @@
+/* The Cooking For Engineers grid — the built-in stylesheet for
+   culina-grid --page and the site's grid layout (culina-site writes it as
+   culina-grid.css). Classes are the culina-grid-* hooks from
+   culina_core::grid::html_grid.
+
+   Font: the grid asks for Atkinson Hyperlegible Next, a legibility face
+   (SIL OFL, fonts.google.com/specimen/Atkinson+Hyperlegible+Next). An
+   installed copy wins; else a collection may ship the variable woff2 at
+   static/fonts/AtkinsonHyperlegibleNext.woff2. Without either, the stack
+   falls back to the system sans, at the cost of one failed request. */
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: local("Atkinson Hyperlegible Next"),
+       url("static/fonts/AtkinsonHyperlegibleNext.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+.culina-grid-title { font: 500 22px/1.2 system-ui, sans-serif; margin: 0 0 12px; }
+
+table.culina-grid {
+  border-collapse: collapse;
+  font: 14px/1.35 "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, sans-serif;
+  color: var(--ink, #1a1a1a);
+  background: var(--paper, #fff);
+}
+.culina-grid td { border: 1px solid var(--faded, #555); padding: 5px 8px; vertical-align: middle; }
+/* Cell rules below say `.culina-grid td.` so they outrank the base rule
+   above; a bare class loses to it and the L joins and rotated padding
+   silently vanish. */
+
+.culina-grid-ingredient, .culina-grid-thread {
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--paper, #fff) 90%, var(--rule, #bbb));
+}
+.culina-grid-thread { font-style: italic; }
+.culina-grid-amount { color: var(--accent, #8a2a18); font-weight: 700; font-variant-numeric: tabular-nums; }
+.culina-grid-ingredient.culina-optional::after { content: " (optional)"; color: var(--faded, #777); font-style: italic; }
+.culina-grid-note { color: var(--faded, #666); font-style: italic; font-size: 12px; }
+
+.culina-grid td.culina-grid-step { text-align: center; white-space: nowrap; font-weight: 500; }
+.culina-grid-verb { cursor: help; }
+.culina-grid-temp { color: var(--accent, #8a2a18); }
+.culina-grid-time {
+  color: var(--accent, #8a2a18); border: 1px solid var(--accent, #8a2a18); border-radius: 9px;
+  padding: 0 6px; font-size: 12px; white-space: nowrap; font-weight: 400;
+}
+
+/* Table cells ignore writing-mode, so the inner box turns. Rotated strokes
+   lose hinting and subpixel antialiasing; a size up and a medium weight
+   compensate. 500, not 600: a family without a semibold (Ubuntu, the
+   common fallback) rounds 600 up to full bold. */
+.culina-grid td.culina-grid-rotate { padding: 6px 2px; vertical-align: middle; }
+/* A label longer than its rows wraps into a second column instead of
+   stretching every row it spans. 30px is one row: 14px text at 1.35,
+   5px padding each side, a 1px border. */
+.culina-grid-rotate .culina-grid-ops {
+  display: inline-block; writing-mode: vertical-rl;
+  /* Inline, not block: in vertical writing the line runs down the page. */
+  max-inline-size: calc(var(--culina-grid-rows, 1) * 30px - 12px);
+  white-space: normal;  /* the step cell's nowrap would forbid the wrap */
+  font-size: 15px;
+}
+.culina-grid-rotate .culina-grid-time { padding: 5px 0; font-size: 13px; }
+
+/* A channel carries a result right; `hidden` wins in border-collapse, so
+   it opens into its step as an L, one row at a time. */
+.culina-grid td.culina-grid-channel { border-left: none; border-right-style: hidden; }
+/* A result no step uses runs to the table edge, which keeps its border. */
+.culina-grid td.culina-grid-channel.culina-grid-edge { border-right-style: solid; }
+
+.culina-grid-setup, .culina-grid-footer { text-align: center; }
+.culina-grid-setup .culina-grid-temp { color: var(--accent, #8a2a18); }
+
+/* The slanted variant: shear the table so the column lines lean into a
+   forward slash; rows stay level, so channels and L joins still read.
+   Each cell's content shears back upright, and rotated labels then tilt
+   to run along their columns, reading bottom to top. The shear pivots on
+   the middle, so the top leans right and the bottom left, each by half
+   the table's height times tan 15deg; side margins of that size (rows
+   from --culina-grid-rows, 30px each, tan 15deg / 2 = 0.134) keep the
+   lean inside the table's box, so centring and scrolling see all of it.
+   On a site page the slant comes from data-layout="grid-slant" on <html>
+   instead of the class, so one table serves both layouts. */
+table.culina-grid.culina-grid-slant,
+[data-layout="grid-slant"] table.culina-grid {
+  transform: skewX(-15deg);
+  margin-inline: calc(var(--culina-grid-rows, 0) * 30px * 0.134);
+}
+.culina-grid-slant .culina-grid-content,
+[data-layout="grid-slant"] .culina-grid-content { display: inline-block; transform: skewX(15deg); }
+.culina-grid-slant td.culina-grid-rotate .culina-grid-content,
+[data-layout="grid-slant"] td.culina-grid-rotate .culina-grid-content {
+  transform: skewX(15deg) rotate(195deg);
+}
+
+/* Site layouts. culina-site puts the grid in a .culina-grid-view inside the
+   card, after the method; data-layout on <html> picks what shows. Absent
+   or "card": the card alone. "grid" or "grid-slant": the card, then its
+   grid, centred under its heading. */
+.culina-grid-view { display: none; }
+[data-layout^="grid"] .culina-grid-view {
+  display: flex; justify-content: safe center;
+  overflow-x: auto; margin: 24px 0;
+  /* overflow-x: auto makes the view clip vertically too, and a collapsed
+     table's outer borders straddle its edge; without room, the last row's
+     bottom rule is cut away. */
+  padding-block: 2px;
+}
+.culina-grid-sheet { display: flex; flex-direction: column; align-items: center; }
+.culina-grid-sheet .culina-grid-heading { align-self: stretch; margin-top: 0; }
+
+/* A grid wider than the card widens the card, so the grid keeps the card's
+   one frame and shadow; the rest of the card keeps its text measure,
+   centred. 550px is the recipe card's measure (640px border-box less 44px
+   padding and a 1px border each side). The card stops at the window less
+   a 16px gutter each side; past that the grid view scrolls, and `safe`
+   centring keeps its left edge reachable. */
+[data-layout^="grid"] article.culina-recipe {
+  width: fit-content;
+  min-width: min(640px, 100%);
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+}
+[data-layout^="grid"] article.culina-recipe > :not(.culina-grid-view) {
+  max-width: 550px;
+  margin-inline: auto;
+}
+/* The 550px cap outranks the theme sheets' max-width: 100% on the photo,
+   and the fit-content card is sized with the capped image in it, so on a
+   narrow card the block image keeps 550px and spills past the frame. */
+[data-layout^="grid"] article.culina-recipe > .culina-photo { max-width: 100%; }
+
+/* The grid prints landscape on its own named page; a card printed from the
+   same site keeps the card stylesheet's page. A hidden grid makes no page. */
+table.culina-grid { page: culina-grid; }
+@page culina-grid { size: landscape; }
+@media print {
+  .culina-grid-verb { cursor: auto; }
+}

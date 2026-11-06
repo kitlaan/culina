@@ -6,11 +6,13 @@
 //! collection owns policy through a `.culina.toml` or `culina.toml` at the
 //! input root (`[site]` title, description; `[lexicon] file` overlay) and
 //! theming through a `culina.css` — present means used, absent means the
-//! built-in default.
+//! built-in default. With `[site] grid = true`, each page also carries its
+//! Cooking For Engineers grid, which `data-layout` on `<html>` shows.
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use culina_core::grid::{grid, html_grid};
 use culina_core::render::{card, html_fragment};
 use culina_core::{error, fmt};
 
@@ -28,7 +30,18 @@ struct Site {
     title: Option<String>,
     #[serde(default)]
     description: Option<String>,
+    /// Emit each recipe's CfE grid into its page (hidden until a layout
+    /// shows it) and write culina-grid.css.
+    #[serde(default)]
+    grid: bool,
+    /// The layout a page opens in: `card` (the default), `grid`, or
+    /// `grid-slant` — the card plus its grid. Written as `data-layout` on `<html>`; a collection's
+    /// own script may change it.
+    #[serde(default)]
+    layout: Option<String>,
 }
+
+const LAYOUTS: [&str; 3] = ["card", "grid", "grid-slant"];
 
 #[derive(serde::Deserialize, Default)]
 struct Lexicon {
@@ -118,7 +131,23 @@ fn read_config(input: &Path) -> Result<Config, String> {
         (false, true) => visible,
     };
     let text = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-    toml::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))
+    let config: Config = toml::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
+    if let Some(l) = &config.site.layout {
+        if !LAYOUTS.contains(&l.as_str()) {
+            return Err(format!(
+                "{}: [site] layout = \"{l}\" is not a layout — use one of {}",
+                path.display(),
+                LAYOUTS.join(", ")
+            ));
+        }
+        if l != "card" && !config.site.grid {
+            return Err(format!(
+                "{}: [site] layout = \"{l}\" needs the grid — add grid = true",
+                path.display()
+            ));
+        }
+    }
+    Ok(config)
 }
 
 fn run(
@@ -133,6 +162,9 @@ fn run(
 
     std::fs::create_dir_all(out).map_err(|e| e.to_string())?;
     copy_css(input, out).map_err(|e| e.to_string())?;
+    if config.site.grid {
+        std::fs::write(out.join("culina-grid.css"), GRID_CSS).map_err(|e| e.to_string())?;
+    }
     let static_dir = input.join("static");
     if static_dir.is_dir() {
         copy_dir(&static_dir, &out.join("static")).map_err(|e| e.to_string())?;
@@ -158,7 +190,11 @@ fn run(
                 } else {
                     model.title.clone()
                 };
-                let page = page(&title, &html_fragment(&model));
+                let mut body = html_fragment(&model);
+                if config.site.grid {
+                    body = with_grid(&body, &html_grid(&grid(&doc)));
+                }
+                let page = page(&title, &body, &config.site);
                 std::fs::write(out.join(format!("{slug}.html")), page)
                     .map_err(|e| format!("{}: {e}", out.display()))?;
                 index.push((title, model.summary.clone(), format!("{slug}.html")));
@@ -237,11 +273,40 @@ fn slug(stem: &str) -> String {
     slug.trim_matches('-').to_string()
 }
 
-fn page(title: &str, fragment: &str) -> String {
+/// Put the grid right after the method, ahead of the notes and photos: the
+/// card reads as before, and the grid follows as its one-glance summary.
+/// The fragment's order after the method is notes, gallery, JSON-LD.
+fn with_grid(card: &str, grid: &str) -> String {
+    // The sheet stacks the heading over the grid inside the centring view.
+    let section = format!(
+        "<section class=\"culina-grid-view\">\n<div class=\"culina-grid-sheet\">\n<h3 class=\"culina-section culina-grid-heading\">At a glance</h3>\n{grid}</div>\n</section>\n"
+    );
+    let at = [
+        "<aside class=\"culina-notes\"",
+        "<div class=\"culina-gallery\"",
+        "<script type=\"application/ld+json\"",
+        "</article>",
+    ]
+    .iter()
+    .find_map(|m| card.find(m))
+    .unwrap_or(card.len());
+    format!("{}{section}{}", &card[..at], &card[at..])
+}
+
+fn page(title: &str, fragment: &str, site: &Site) -> String {
     let amp = char::from_u32(0x26).unwrap();
     let lt = format!("{amp}lt;");
+    let layout = match &site.layout {
+        Some(l) if site.grid => format!(" data-layout=\"{l}\""),
+        _ => String::new(),
+    };
+    let grid_css = if site.grid {
+        "<link rel=\"stylesheet\" href=\"culina-grid.css\">\n"
+    } else {
+        ""
+    };
     format!(
-        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<link rel=\"stylesheet\" href=\"culina.css\">\n</head>\n<body>\n{}\n</body>\n</html>\n",
+        "<!DOCTYPE html>\n<html lang=\"en\"{layout}>\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<link rel=\"stylesheet\" href=\"culina.css\">\n{grid_css}</head>\n<body>\n{}\n</body>\n</html>\n",
         title.replace('&', &format!("{amp}amp;"))
             .replace('<', &lt),
         fragment
@@ -292,9 +357,11 @@ Usage: culina-site [--in DIR] [--out DIR]
   --out   output directory (default: site)
 
 The collection root may carry a policy file (.culina.toml or
-culina.toml — [site] title, description; [lexicon] file =
-\"overlay.toml\"), a culina.css (used instead of the built-in
-default), and a static/ directory copied verbatim.",
+culina.toml — [site] title, description, grid = true, layout =
+\"card\" | \"grid\" | \"grid-slant\"; [lexicon] file = \"overlay.toml\"),
+a culina.css (used instead of the built-in default), and a static/
+directory copied verbatim. With grid on, a font file at
+static/fonts/AtkinsonHyperlegibleNext.woff2 is used by the grid.",
         env!("CARGO_PKG_VERSION")
     );
 }
@@ -303,3 +370,7 @@ default), and a static/ directory copied verbatim.",
 /// dotted leaders). Collections override by dropping a `culina.css` at the
 /// input root; the `css/` directory ships three alternative stylesheets.
 const DEFAULT_CSS: &str = include_str!("../css/recipe-card.css");
+
+/// The grid stylesheet, written as culina-grid.css when the grid is on. It
+/// sits beside culina.css, so a collection's own card sheet keeps the grid.
+const GRID_CSS: &str = include_str!("../css/grid.css");

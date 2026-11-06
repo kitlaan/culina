@@ -712,9 +712,28 @@ The collection's policy file lives at the collection root, named
 for the tool, not for browsing, and the root stays uncluttered. The
 visible name stays valid, so collections that started before the
 dotfile do not break. `[site]` carries generator settings (title,
-description), `[lexicon]` `file = "overlay.toml"` points at the lexicon
-overlay. Fields are added when real collections need them — the same
-admission discipline as the metadata registry.
+description, grid, layout), `[lexicon]` `file = "overlay.toml"` points at
+the lexicon overlay. Fields are added when real collections need them —
+the same admission discipline as the metadata registry.
+
+- `grid = true` puts each recipe's [CfE grid](#the-cfe-grid) into its
+  page, after the method, and writes `culina-grid.css` beside
+  `culina.css` — a separate sheet, so a collection's own card sheet keeps
+  the grid. The grid stays hidden until a layout shows it.
+- `layout` is the layout a page opens in: `card` (the default), `grid`,
+  or `grid-slant`, written as `data-layout` on `<html>`. A grid layout
+  adds the grid to the card: the list and method stay, and the grid
+  follows them, centred, as a one-glance summary under an "At a glance"
+  heading. A grid wider than the card widens the whole card, up to the
+  window, so it keeps one frame; the rest of the card keeps its text
+  measure, centred. Past the window the grid scrolls. The grid takes its colours from the
+  card stylesheet's `--paper`, `--ink`, `--rule`, `--accent`, and
+  `--faded`. A collection's own script may change the attribute. An unknown layout, or
+  a grid layout without `grid = true`, fails the build and names the fix.
+- The grid stylesheet asks for Atkinson Hyperlegible Next: an installed
+  copy, else `static/fonts/AtkinsonHyperlegibleNext.woff2` if the
+  collection ships one, else the system sans. A font is a choice, not a
+  requirement, so its absence is silent.
 
 The filename is policy, not a lookup detail. A policy file that the
 tool does not read degrades the site without a trace, and an unread
@@ -743,6 +762,46 @@ timing, structure:
 The Cooking For Engineers grid is the validation case: it tabulates exactly the
 step→ingredient and step→duration edges the format holds as data, with thread
 lifetimes as carried rows.
+
+### The CfE grid
+
+The grid is the food DAG drawn as a table (`grid::grid`, `grid::html_grid`,
+and the `culina-grid` CLI):
+
+- **Ingredients sit in the left column**, one row per use, in one unit:
+  the weight when the author gave one, else the first amount. A use's
+  notes ride with its name (`green beans, frozen`); they are the
+  author's words, not steps, so they take no column.
+- **A step is one column past its inputs** and spans the rows of
+  everything it combines. A blank channel carries a result right to the
+  step that uses it and opens into that step, so the two read as an L.
+- **The main thing stays on top**: threads first, the biggest first, then
+  the ingredients that join it.
+- **A fork reaches its second consumer by name.** The thread's subtree is
+  drawn under its first consumer; later consumers get a thread cell.
+- **The grid keeps the verb, not the sentence.** A cell shows the action,
+  the tool settings a cook makes (temperatures, and word states such as
+  `high` or `lid on`; sizes such as `18x13 in` describe the tool and stay
+  out), and the time; the authored sentence rides behind the verb. A timeless run of steps on one thing with no new input shares a
+  column (`pour · stretch · dimple`); a timed step gets its own.
+- **Setup steps head the grid** (`preheat oven 450F`). Setting a tool
+  again mid-cook (`lower oven 375F`) is a change, so it rides the next
+  step instead. **Trailing steps** with no ingredient, no time, and no
+  join (`serve`, `store`) are the footer.
+- **Rotation is layout**: a cell past the first step column that spans
+  more than one row reads sideways.
+- **The slanted grid is an option** (`culina-grid-slant`, `--slant`):
+  the table shears so the column lines lean into a forward slash. Rows
+  stay level, so channels and L joins still read; each cell's content
+  (one `culina-grid-content` box) shears back upright, and rotated
+  labels tilt along their columns, reading bottom to top. The ingredient
+  column leans with the rest — one shear cannot keep it upright. An
+  upright list beside a slanted step area (a hockey stick) needs drawn
+  geometry, such as an SVG step area, and waits for a reason.
+
+The grid builds from the Document, not the CardModel: it needs each
+use's notes, and the one-unit rule and tool settings need unit
+classification, which the card flattens away.
 
 The render pipeline: **Document → CardModel → target.** The CardModel is the
 semantic seam — title, meta rows, aggregated ingredients, step prose, JSON-LD
@@ -898,7 +957,6 @@ Specced, not yet built:
 - Cook-mode UI — the CSS experiments proved the display layer (snap cards,
   `data-duration` timer chips); running timers, step progress, and
   interaction design need JavaScript, which needs the WASM target.
-- The true CfE grid — the CSS experiments proved the data is there
-  (step→ingredient and step→duration edges, thread lifetimes); the grid
-  needs its own HTML emission from the CardModel, not a CSS
-  approximation of the prose fragment.
+- The CfE grid in culina-site — the grid emitter and `culina-grid` CLI
+  are built (see [The CfE grid](#the-cfe-grid)); the site does not emit
+  it yet.

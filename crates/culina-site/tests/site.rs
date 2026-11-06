@@ -214,3 +214,87 @@ fn static_dir_is_copied_verbatim() {
         "photo referenced verbatim: {page}"
     );
 }
+
+// --- The CfE grid layout (design.md, Collection config) ---
+
+#[test]
+fn grid_on_puts_the_grid_in_each_page_and_writes_its_sheet() {
+    let dir = tmp_collection("grid");
+    std::fs::write(
+        dir.join(".culina.toml"),
+        "[site]\ngrid = true\nlayout = \"grid-slant\"\n",
+    )
+    .unwrap();
+    std::fs::write(dir.join("red-curry.culina"), CURRY).unwrap();
+    let out = dir.join("site");
+    let (code, _, stderr) = run(&[
+        "--in",
+        dir.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(code, Some(0), "{stderr}");
+
+    let page = std::fs::read_to_string(out.join("red-curry.html")).unwrap();
+    assert!(
+        page.contains("<html lang=\"en\" data-layout=\"grid-slant\">"),
+        "{page}"
+    );
+    assert!(
+        page.contains("<link rel=\"stylesheet\" href=\"culina-grid.css\">"),
+        "{page}"
+    );
+    // The card keeps its list and method; the grid follows the method.
+    let grid = page
+        .find("<section class=\"culina-grid-view\">")
+        .expect("grid section");
+    let method = page.find("<div class=\"culina-method\"").expect("method");
+    let ld = page
+        .find("<script type=\"application/ld+json\"")
+        .expect("JSON-LD");
+    assert!(method < grid && grid < ld, "{page}");
+    assert!(page.contains("<ul class=\"culina-ingredients\""), "{page}");
+    assert!(out.join("culina-grid.css").exists());
+}
+
+#[test]
+fn grid_off_leaves_pages_as_cards() {
+    let dir = tmp_collection("nogrid");
+    std::fs::write(dir.join("red-curry.culina"), CURRY).unwrap();
+    let out = dir.join("site");
+    let (code, _, stderr) = run(&[
+        "--in",
+        dir.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(code, Some(0), "{stderr}");
+    let page = std::fs::read_to_string(out.join("red-curry.html")).unwrap();
+    assert!(!page.contains("culina-grid"), "{page}");
+    assert!(!page.contains("data-layout"), "{page}");
+    assert!(!out.join("culina-grid.css").exists());
+}
+
+#[test]
+fn a_grid_layout_without_the_grid_fails_loudly() {
+    for (toml, says) in [
+        ("[site]\nlayout = \"grid\"\n", "add grid = true"),
+        (
+            "[site]\ngrid = true\nlayout = \"tiles\"\n",
+            "use one of card, grid, grid-slant",
+        ),
+    ] {
+        let dir = tmp_collection("badlayout");
+        std::fs::write(dir.join(".culina.toml"), toml).unwrap();
+        std::fs::write(dir.join("red-curry.culina"), CURRY).unwrap();
+        let out = dir.join("site");
+        let (code, _, stderr) = run(&[
+            "--in",
+            dir.to_str().unwrap(),
+            "--out",
+            out.to_str().unwrap(),
+        ]);
+        assert_eq!(code, Some(1), "{toml}");
+        assert!(stderr.contains(says), "{stderr}");
+    }
+}

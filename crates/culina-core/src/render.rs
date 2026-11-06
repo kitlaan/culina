@@ -248,6 +248,12 @@ fn collect_ingredients(step: &Step, out: &mut Vec<Ingredient>) {
     }
 }
 
+/// A step's authored sentence, production clause split out — what the grid
+/// offers on demand behind each verb.
+pub(crate) fn step_text(step: &Step) -> String {
+    step_model(step).text
+}
+
 /// One step's segment structure, plus the folded plain text. The production
 /// clause (`=> _dough`) splits out as `produces` — the traditional card
 /// never reads "→ base", and the trailing punctuation stays with the prose.
@@ -638,7 +644,7 @@ pub fn html_fragment(card: &CardModel) -> String {
 /// HTML-escape. Entities are built from a codepoint at runtime so the raw
 /// sequences never appear in source text — some tooling in this project's
 /// pipeline decodes entities in transit.
-fn esc(s: &str) -> String {
+pub(crate) fn esc(s: &str) -> String {
     let amp = char::from_u32(0x26).unwrap();
     let lt = format!("{amp}lt;");
     let gt = format!("{amp}gt;");

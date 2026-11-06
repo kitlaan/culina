@@ -298,3 +298,45 @@ fn a_grid_layout_without_the_grid_fails_loudly() {
         assert!(stderr.contains(says), "{stderr}");
     }
 }
+
+// --- Discovery (README, culina-site) ---
+
+#[test]
+fn recipes_are_found_at_any_depth_but_not_in_hidden_dirs() {
+    let dir = tmp_collection("depth");
+    std::fs::create_dir_all(dir.join("recipes/soups")).unwrap();
+    std::fs::create_dir_all(dir.join(".culina-src/fixtures")).unwrap();
+    std::fs::write(dir.join("recipes/soups/red-curry.culina"), CURRY).unwrap();
+    std::fs::write(dir.join(".culina-src/fixtures/stray.culina"), CURRY).unwrap();
+    let out = dir.join("site");
+    let (code, _, stderr) = run(&[
+        "--in",
+        dir.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(code, Some(0), "{stderr}");
+    assert!(out.join("red-curry.html").exists(), "nested recipe found");
+    assert!(!out.join("stray.html").exists(), "hidden dir skipped");
+}
+
+#[test]
+fn two_recipes_with_one_page_name_fail_loudly() {
+    let dir = tmp_collection("collide");
+    std::fs::create_dir_all(dir.join("a")).unwrap();
+    std::fs::create_dir_all(dir.join("b")).unwrap();
+    std::fs::write(dir.join("a/curry.culina"), CURRY).unwrap();
+    std::fs::write(dir.join("b/curry.culina"), CURRY).unwrap();
+    let out = dir.join("site");
+    let (code, _, stderr) = run(&[
+        "--in",
+        dir.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(code, Some(1));
+    assert!(
+        stderr.contains("both become curry.html — rename one"),
+        "{stderr}"
+    );
+}

@@ -170,6 +170,24 @@ fn run(
         copy_dir(&static_dir, &out.join("static")).map_err(|e| e.to_string())?;
     }
 
+    // Pages are flat, named by file stem, so two recipes in different
+    // directories can claim one page; a silent overwrite would drop one.
+    let mut pages: std::collections::HashMap<String, &PathBuf> = std::collections::HashMap::new();
+    for path in &recipes {
+        let s = slug(
+            path.file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("recipe"),
+        );
+        if let Some(first) = pages.insert(s.clone(), path) {
+            return Err(format!(
+                "{} and {} both become {s}.html — rename one",
+                first.display(),
+                path.display()
+            ));
+        }
+    }
+
     let mut index: Vec<(String, Option<String>, String)> = Vec::new();
     let mut failed = false;
     for path in &recipes {
@@ -214,7 +232,9 @@ fn run(
     Ok(())
 }
 
-/// All `.culina` files under `dir`, skipping the output directory.
+/// All `.culina` files under `dir`, at any depth, skipping the output
+/// directory and hidden directories (`.git`, a tool checkout such as
+/// `.culina-src`): a dot means "not part of the collection".
 fn collect(dir: &Path, skip: &Path, acc: &mut Vec<PathBuf>) -> std::io::Result<()> {
     for entry in std::fs::read_dir(dir)? {
         let path = entry?.path();
@@ -223,7 +243,7 @@ fn collect(dir: &Path, skip: &Path, acc: &mut Vec<PathBuf>) -> std::io::Result<(
                 .file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or_default();
-            if name == ".git" || path.canonicalize().ok() == skip.canonicalize().ok() {
+            if name.starts_with('.') || path.canonicalize().ok() == skip.canonicalize().ok() {
                 continue;
             }
             collect(&path, skip, acc)?;

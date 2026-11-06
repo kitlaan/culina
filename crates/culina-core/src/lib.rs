@@ -10,6 +10,7 @@ pub mod dag;
 pub mod error;
 pub mod fields;
 pub mod fmt;
+pub mod grid;
 pub mod inline;
 pub mod lexicon;
 pub mod metadata;

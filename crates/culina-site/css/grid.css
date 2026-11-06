@@ -1,0 +1,73 @@
+/* The Cooking For Engineers grid — the built-in stylesheet for
+   culina-grid --page and the site's grid layout. Classes are the
+   culina-grid-* hooks from culina_core::grid::html_grid. */
+
+.culina-grid-title { font: 500 22px/1.2 system-ui, sans-serif; margin: 0 0 12px; }
+
+table.culina-grid {
+  border-collapse: collapse;
+  font: 14px/1.35 "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, sans-serif;
+  color: #1a1a1a;
+  background: #fff;
+}
+.culina-grid td { border: 1px solid #555; padding: 5px 8px; vertical-align: middle; }
+/* Cell rules below say `.culina-grid td.` so they outrank the base rule
+   above; a bare class loses to it and the L joins and rotated padding
+   silently vanish. */
+
+.culina-grid-ingredient, .culina-grid-thread { white-space: nowrap; background: #fbfaf6; }
+.culina-grid-thread { font-style: italic; }
+.culina-grid-amount { color: #8a2a18; font-weight: 700; font-variant-numeric: tabular-nums; }
+.culina-grid-ingredient.culina-optional::after { content: " (optional)"; color: #777; font-style: italic; }
+.culina-grid-note { color: #666; font-style: italic; font-size: 12px; }
+
+.culina-grid td.culina-grid-step { text-align: center; white-space: nowrap; font-weight: 500; }
+.culina-grid-verb { cursor: help; }
+.culina-grid-temp { color: #8a2a18; }
+.culina-grid-time {
+  color: #8a2a18; border: 1px solid #8a2a18; border-radius: 9px;
+  padding: 0 6px; font-size: 12px; white-space: nowrap; font-weight: 400;
+}
+
+/* Table cells ignore writing-mode, so the inner box turns. Rotated strokes
+   lose hinting and subpixel antialiasing; a size up and a medium weight
+   compensate. 500, not 600: a family without a semibold (Ubuntu, the
+   common fallback) rounds 600 up to full bold. */
+.culina-grid td.culina-grid-rotate { padding: 6px 2px; vertical-align: middle; }
+/* A label longer than its rows wraps into a second column instead of
+   stretching every row it spans. 30px is one row: 14px text at 1.35,
+   5px padding each side, a 1px border. */
+.culina-grid-rotate .culina-grid-ops {
+  display: inline-block; writing-mode: vertical-rl;
+  /* Inline, not block: in vertical writing the line runs down the page. */
+  max-inline-size: calc(var(--culina-grid-rows, 1) * 30px - 12px);
+  white-space: normal;  /* the step cell's nowrap would forbid the wrap */
+  font-size: 15px;
+}
+.culina-grid-rotate .culina-grid-time { padding: 5px 0; font-size: 13px; }
+
+/* A channel carries a result right; `hidden` wins in border-collapse, so
+   it opens into its step as an L, one row at a time. */
+.culina-grid td.culina-grid-channel { border-left: none; border-right-style: hidden; }
+/* A result no step uses runs to the table edge, which keeps its border. */
+.culina-grid td.culina-grid-channel.culina-grid-edge { border-right-style: solid; }
+
+.culina-grid-setup, .culina-grid-footer { text-align: center; }
+.culina-grid-setup .culina-grid-temp { color: #8a2a18; }
+
+/* The slanted variant: shear the table so the column lines lean into a
+   forward slash; rows stay level, so channels and L joins still read.
+   Each cell's content shears back upright, and rotated labels then tilt
+   to run along their columns, reading bottom to top. Pivoting at the
+   bottom-left keeps the left edge on the page; the top leans right past
+   the table's box by its height times tan 15deg. */
+table.culina-grid.culina-grid-slant { transform: skewX(-15deg); transform-origin: bottom left; }
+.culina-grid-slant .culina-grid-content { display: inline-block; transform: skewX(15deg); }
+.culina-grid-slant td.culina-grid-rotate .culina-grid-content {
+  transform: skewX(15deg) rotate(195deg);
+}
+
+@media print {
+  @page { size: landscape; }
+  .culina-grid-verb { cursor: auto; }
+}

@@ -61,6 +61,19 @@ With files: rewrite each in place when its form differs.
 With no files: read stdin, print canonical text to stdout (no stamping).
 ```
 
+### culina-grid — the Cooking For Engineers grid
+
+```
+./target/debug/culina-grid --page recipe.culina > recipe-grid.html
+```
+
+Prints one recipe as a CfE table: ingredients on the left, each step a
+cell spanning what it combines. Without `--page`, an unstyled
+`<table class="culina-grid">` fragment to include elsewhere; with it, a
+whole page with the built-in grid stylesheet (`crates/culina-site/css/grid.css`).
+`--slant` leans the columns into a forward slash, so the rotated labels read
+at an angle instead of straight up.
+
 ### culina-site — the static site generator
 
 ```
@@ -131,14 +144,14 @@ equivalency, approx prefixes, the `%` escape), DAG validation with honest
 thread errors, the formatter, lexicons with the full resolution order,
 the metadata key registry, the render pipeline (Document → CardModel →
 HTML with schema.org JSON-LD), culina-site with the classic card
-stylesheet built in, and three example stylesheets (inline measurements,
-parallel tracks, index card).
+stylesheet built in, three example stylesheets (inline measurements,
+parallel tracks, index card), and the Cooking For Engineers grid
+(`culina-grid`).
 
 Specced in `design.md`, not yet built: the scaling engine's exact
 arithmetic, sub-recipe resolution across files, a WASM target (which
 enables the cook-mode UI), per-language cores beyond English, and the
-true CfE grid target (which needs its own HTML emission, not a CSS
-approximation).
+CfE grid inside culina-site pages.
 
 ## Agent development
 

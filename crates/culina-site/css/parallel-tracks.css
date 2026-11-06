@@ -151,6 +151,8 @@ li.culina-step::marker { color: var(--accent); font-weight: 600; }
   /* Tiles are a screen economy; paper wants the full photos. */
   .culina-gallery { display: block; }
   .culina-gallery-item { aspect-ratio: auto; }
+  /* Chrome is screen furniture; paper wants the recipe alone. */
+  details.culina-source, footer.culina-site-footer { display: none; }
 }
 
 header.culina-site-header { max-width: 1000px; margin: 0 auto; text-align: center; }
@@ -178,3 +180,45 @@ li.culina-recipe-index-item a { color: var(--ink); text-decoration: none; font-w
 li.culina-recipe-index-item a:hover { text-decoration: underline; }
 /* Not the body's 1.7 — prose air reads loose on a wrapped supporting line. */
 .culina-recipe-index-summary { display: block; color: var(--faded); font-style: italic; line-height: 1.3; }
+
+/* ---- Page chrome after the card: source block and footer ---- */
+
+/* The recipe's own text, closed, and the site footer. Muted, so the
+   card stays the page's one subject. */
+details.culina-source {
+  max-width: 1000px;
+  margin: 28px auto 0;
+  font-size: 14px;
+  color: var(--faded);
+}
+details.culina-source summary { cursor: pointer; }
+pre.culina-source-text {
+  margin: 8px 0 0;
+  padding: 12px 16px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 2px 2px 0 rgba(60, 48, 20, 0.12);
+  font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--ink);
+  white-space: pre-wrap;
+  /* Soft-wrapped rows hang past their line's start, so a wrapped row
+     never reads as a new authored line. Browsers without the keywords
+     drop the declaration, and the block shows flat. */
+  text-indent: 2.5em hanging each-line;
+}
+.culina-source-link { margin-left: 1em; }
+.culina-source-link a { color: var(--faded); }
+.culina-source-link a:hover { color: var(--accent); }
+
+footer.culina-site-footer {
+  max-width: 1000px;
+  margin: 20px auto 44px;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--faded);
+}
+.culina-repo { color: var(--faded); }
+.culina-repo:hover { color: var(--accent); }
+/* 15px on a 13px line: the mark hangs to text-middle, a hair clear of it. */
+.culina-repo-icon { width: 15px; height: 15px; vertical-align: -3px; margin-right: 4px; }

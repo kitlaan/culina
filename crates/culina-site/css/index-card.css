@@ -266,4 +266,46 @@ li.culina-recipe-index-item a { color: var(--ink); text-decoration: none; font-w
     border-bottom: 0.5pt solid #999;
     page-break-inside: avoid;
   }
+  /* Chrome is screen furniture; paper wants the card alone. */
+  details.culina-source, footer.culina-site-footer { display: none; }
 }
+
+/* ---- Page chrome after the card: source block and footer ---- */
+
+/* The recipe's own text, closed, and the site footer. Muted desk-cream,
+   so the card stays the page's one subject. */
+details.culina-source {
+  max-width: 4in;
+  margin: 24px auto 0;
+  font-size: 13px;
+  color: #d8cbb2;
+}
+details.culina-source summary { cursor: pointer; }
+pre.culina-source-text {
+  margin: 8px 0 0;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--ink);
+  white-space: pre-wrap;
+  /* Soft-wrapped rows hang past their line's start, so a wrapped row
+     never reads as a new authored line. Browsers without the keywords
+     drop the declaration, and the block shows flat. */
+  text-indent: 2.5em hanging each-line;
+}
+.culina-source-link { margin-left: 1em; }
+.culina-source-link a { color: #d8cbb2; }
+.culina-source-link a:hover { color: var(--card); }
+
+footer.culina-site-footer {
+  max-width: 4in;
+  margin: 18px auto 36px;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  color: #d8cbb2;
+}
+.culina-repo { color: #d8cbb2; }
+.culina-repo:hover { color: var(--card); }
+.culina-repo-icon { width: 14px; height: 14px; vertical-align: -3px; margin-right: 4px; }

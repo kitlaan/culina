@@ -89,7 +89,7 @@ directory is copied verbatim.
 
 With `grid = true`, every page also carries its Cooking For Engineers
 grid, styled by `culina-grid.css`, and `layout = "grid"` (or
-`"grid-slant"`) opens pages on it instead of the card. The grid reads best
+`"grid-slant"`) opens pages with the grid shown after the card's method. The grid reads best
 in [Atkinson Hyperlegible Next](https://fonts.google.com/specimen/Atkinson+Hyperlegible+Next):
 install it, or put the variable woff2 at
 `static/fonts/AtkinsonHyperlegibleNext.woff2`.

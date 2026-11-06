@@ -561,11 +561,15 @@ fn content(inner: &str) -> String {
 
 pub fn html_grid_with(g: &GridModel, opts: &GridOptions) -> String {
     let esc = crate::render::esc;
-    let mut out = if opts.slant {
-        String::from("<table class=\"culina-grid culina-grid-slant\">\n")
+    // The row count lets a stylesheet size the slant's lean (rows times row
+    // height times tan 15deg) without measuring the rendered table.
+    let rows = g.rows.len() + usize::from(!g.setup.is_empty()) + usize::from(!g.footer.is_empty());
+    let cls = if opts.slant {
+        "culina-grid culina-grid-slant"
     } else {
-        String::from("<table class=\"culina-grid\">\n")
+        "culina-grid"
     };
+    let mut out = format!("<table class=\"{cls}\" style=\"--culina-grid-rows: {rows}\">\n");
     if !g.setup.is_empty() {
         out.push_str(&format!(
             "<thead><tr><td class=\"culina-grid-setup\" colspan=\"{}\">{}</td></tr></thead>\n",

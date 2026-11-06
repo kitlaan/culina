@@ -244,14 +244,16 @@ fn grid_on_puts_the_grid_in_each_page_and_writes_its_sheet() {
         page.contains("<link rel=\"stylesheet\" href=\"culina-grid.css\">"),
         "{page}"
     );
-    // The grid sits ahead of the ingredient list it stands in for.
+    // The card keeps its list and method; the grid follows the method.
     let grid = page
         .find("<section class=\"culina-grid-view\">")
         .expect("grid section");
-    let list = page
-        .find("<ul class=\"culina-ingredients\"")
-        .expect("ingredient list");
-    assert!(grid < list, "{page}");
+    let method = page.find("<div class=\"culina-method\"").expect("method");
+    let ld = page
+        .find("<script type=\"application/ld+json\"")
+        .expect("JSON-LD");
+    assert!(method < grid && grid < ld, "{page}");
+    assert!(page.contains("<ul class=\"culina-ingredients\""), "{page}");
     assert!(out.join("culina-grid.css").exists());
 }
 

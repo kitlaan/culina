@@ -717,13 +717,18 @@ the lexicon overlay. Fields are added when real collections need them —
 the same admission discipline as the metadata registry.
 
 - `grid = true` puts each recipe's [CfE grid](#the-cfe-grid) into its
-  page, ahead of the ingredient list, and writes `culina-grid.css` beside
+  page, after the method, and writes `culina-grid.css` beside
   `culina.css` — a separate sheet, so a collection's own card sheet keeps
   the grid. The grid stays hidden until a layout shows it.
 - `layout` is the layout a page opens in: `card` (the default), `grid`,
   or `grid-slant`, written as `data-layout` on `<html>`. A grid layout
-  shows the grid in place of the ingredient list and the method; a
-  collection's own script may change the attribute. An unknown layout, or
+  adds the grid to the card: the list and method stay, and the grid
+  follows them, centred, as a one-glance summary under an "At a glance"
+  heading. A grid wider than the card widens the whole card, up to the
+  window, so it keeps one frame; the rest of the card keeps its text
+  measure, centred. Past the window the grid scrolls. The grid takes its colours from the
+  card stylesheet's `--paper`, `--ink`, `--rule`, `--accent`, and
+  `--faded`. A collection's own script may change the attribute. An unknown layout, or
   a grid layout without `grid = true`, fails the build and names the fix.
 - The grid stylesheet asks for Atkinson Hyperlegible Next: an installed
   copy, else `static/fonts/AtkinsonHyperlegibleNext.woff2` if the

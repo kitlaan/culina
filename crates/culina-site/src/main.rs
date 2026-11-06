@@ -35,7 +35,7 @@ struct Site {
     #[serde(default)]
     grid: bool,
     /// The layout a page opens in: `card` (the default), `grid`, or
-    /// `grid-slant`. Written as `data-layout` on `<html>`; a collection's
+    /// `grid-slant` — the card plus its grid. Written as `data-layout` on `<html>`; a collection's
     /// own script may change it.
     #[serde(default)]
     layout: Option<String>,
@@ -273,13 +273,18 @@ fn slug(stem: &str) -> String {
     slug.trim_matches('-').to_string()
 }
 
-/// Put the grid where the ingredient list starts, so a grid layout that
-/// hides the list and the method shows the grid in their place.
+/// Put the grid right after the method, ahead of the notes and photos: the
+/// card reads as before, and the grid follows as its one-glance summary.
+/// The fragment's order after the method is notes, gallery, JSON-LD.
 fn with_grid(card: &str, grid: &str) -> String {
-    let section = format!("<section class=\"culina-grid-view\">\n{grid}</section>\n");
+    // The sheet stacks the heading over the grid inside the centring view.
+    let section = format!(
+        "<section class=\"culina-grid-view\">\n<div class=\"culina-grid-sheet\">\n<h3 class=\"culina-section culina-grid-heading\">At a glance</h3>\n{grid}</div>\n</section>\n"
+    );
     let at = [
-        "<ul class=\"culina-ingredients\"",
-        "<div class=\"culina-method\"",
+        "<aside class=\"culina-notes\"",
+        "<div class=\"culina-gallery\"",
+        "<script type=\"application/ld+json\"",
         "</article>",
     ]
     .iter()

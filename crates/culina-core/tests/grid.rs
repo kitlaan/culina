@@ -153,7 +153,10 @@ fn fixtures_draw_one_tree_each() {
             assert_eq!(row[0].col, 0, "{g:#?}");
         }
         let html = html_grid(&g);
-        assert!(html.starts_with("<table class=\"culina-grid\">"), "{html}");
+        assert!(
+            html.starts_with("<table class=\"culina-grid\" style=\"--culina-grid-rows: "),
+            "{html}"
+        );
     }
 }
 
@@ -223,14 +226,14 @@ fn cells_box_their_content_and_slant_is_a_class() {
         model(":preheat #{oven|400F}.\n:mix @{flour|1 cup} => _a.\n:{bake|5 min} _a.\n:cool _a.\n");
     let plain = html_grid(&g);
     assert!(
-        plain.starts_with("<table class=\"culina-grid\">"),
+        plain.starts_with("<table class=\"culina-grid\" style=\"--culina-grid-rows: "),
         "{plain}"
     );
     // Setup, ingredient, step, and footer cells each box their content.
     assert_eq!(plain.matches("culina-grid-content").count(), 5, "{plain}");
     let slant = html_grid_with(&g, &GridOptions { slant: true });
     assert!(
-        slant.starts_with("<table class=\"culina-grid culina-grid-slant\">"),
+        slant.starts_with("<table class=\"culina-grid culina-grid-slant\""),
         "{slant}"
     );
 }

@@ -128,7 +128,9 @@ li.culina-ingredient { flex-wrap: wrap; }
   li.culina-ingredient { display: block; }
   .culina-ing-name::after { display: none; }
   .culina-ing-amounts { display: block; }
-  li.culina-ingredient .culina-ing-notes { display: block; margin: 0; }
+  /* The amounts sit right-aligned as a block, so a wrapped note reads as a
+     stray line at the page's left edge. Hang it under the count instead. */
+  li.culina-ingredient .culina-ing-notes { display: block; margin: 0; text-align: right; }
 }
 
 h3.culina-section {

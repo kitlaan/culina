@@ -103,6 +103,10 @@ table.culina-grid.culina-grid-slant,
 [data-layout^="grid"] .culina-grid-view {
   display: flex; justify-content: safe center;
   overflow-x: auto; margin: 24px 0;
+  /* overflow-x: auto makes the view clip vertically too, and a collapsed
+     table's outer borders straddle its edge; without room, the last row's
+     bottom rule is cut away. */
+  padding-block: 2px;
 }
 .culina-grid-sheet { display: flex; flex-direction: column; align-items: center; }
 .culina-grid-sheet .culina-grid-heading { align-self: stretch; margin-top: 0; }

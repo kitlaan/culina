@@ -127,6 +127,10 @@ table.culina-grid.culina-grid-slant,
   max-width: 550px;
   margin-inline: auto;
 }
+/* The 550px cap outranks the theme sheets' max-width: 100% on the photo,
+   and the fit-content card is sized with the capped image in it, so on a
+   narrow card the block image keeps 550px and spills past the frame. */
+[data-layout^="grid"] article.culina-recipe > .culina-photo { max-width: 100%; }
 
 /* The grid prints landscape on its own named page; a card printed from the
    same site keeps the card stylesheet's page. A hidden grid makes no page. */

@@ -1,6 +1,21 @@
 /* The Cooking For Engineers grid — the built-in stylesheet for
-   culina-grid --page and the site's grid layout. Classes are the
-   culina-grid-* hooks from culina_core::grid::html_grid. */
+   culina-grid --page and the site's grid layout (culina-site writes it as
+   culina-grid.css). Classes are the culina-grid-* hooks from
+   culina_core::grid::html_grid.
+
+   Font: the grid asks for Atkinson Hyperlegible Next, a legibility face
+   (SIL OFL, fonts.google.com/specimen/Atkinson+Hyperlegible+Next). An
+   installed copy wins; else a collection may ship the variable woff2 at
+   static/fonts/AtkinsonHyperlegibleNext.woff2. Without either, the stack
+   falls back to the system sans, at the cost of one failed request. */
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: local("Atkinson Hyperlegible Next"),
+       url("static/fonts/AtkinsonHyperlegibleNext.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
 
 .culina-grid-title { font: 500 22px/1.2 system-ui, sans-serif; margin: 0 0 12px; }
 
@@ -60,14 +75,35 @@ table.culina-grid {
    Each cell's content shears back upright, and rotated labels then tilt
    to run along their columns, reading bottom to top. Pivoting at the
    bottom-left keeps the left edge on the page; the top leans right past
-   the table's box by its height times tan 15deg. */
-table.culina-grid.culina-grid-slant { transform: skewX(-15deg); transform-origin: bottom left; }
-.culina-grid-slant .culina-grid-content { display: inline-block; transform: skewX(15deg); }
-.culina-grid-slant td.culina-grid-rotate .culina-grid-content {
+   the table's box by its height times tan 15deg.
+   On a site page the slant comes from data-layout="grid-slant" on <html>
+   instead of the class, so one table serves both layouts. */
+table.culina-grid.culina-grid-slant,
+[data-layout="grid-slant"] table.culina-grid { transform: skewX(-15deg); transform-origin: bottom left; }
+.culina-grid-slant .culina-grid-content,
+[data-layout="grid-slant"] .culina-grid-content { display: inline-block; transform: skewX(15deg); }
+.culina-grid-slant td.culina-grid-rotate .culina-grid-content,
+[data-layout="grid-slant"] td.culina-grid-rotate .culina-grid-content {
   transform: skewX(15deg) rotate(195deg);
 }
 
+/* Site layouts. culina-site puts the grid in a .culina-grid-view inside the
+   card, ahead of the ingredient list; data-layout on <html> picks what
+   shows. Absent or "card": the card alone. "grid" or "grid-slant": the
+   grid stands in for the ingredient list and the method. The view
+   scrolls sideways rather than burst a narrow card. */
+.culina-grid-view { display: none; }
+[data-layout="grid"] .culina-grid-view,
+[data-layout="grid-slant"] .culina-grid-view { display: block; overflow-x: auto; margin: 18px 0; }
+[data-layout="grid"] .culina-ingredients,
+[data-layout="grid"] .culina-method,
+[data-layout="grid-slant"] .culina-ingredients,
+[data-layout="grid-slant"] .culina-method { display: none; }
+
+/* The grid prints landscape on its own named page; a card printed from the
+   same site keeps the card stylesheet's page. A hidden grid makes no page. */
+table.culina-grid { page: culina-grid; }
+@page culina-grid { size: landscape; }
 @media print {
-  @page { size: landscape; }
   .culina-grid-verb { cursor: auto; }
 }

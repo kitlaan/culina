@@ -712,9 +712,23 @@ The collection's policy file lives at the collection root, named
 for the tool, not for browsing, and the root stays uncluttered. The
 visible name stays valid, so collections that started before the
 dotfile do not break. `[site]` carries generator settings (title,
-description), `[lexicon]` `file = "overlay.toml"` points at the lexicon
-overlay. Fields are added when real collections need them — the same
-admission discipline as the metadata registry.
+description, grid, layout), `[lexicon]` `file = "overlay.toml"` points at
+the lexicon overlay. Fields are added when real collections need them —
+the same admission discipline as the metadata registry.
+
+- `grid = true` puts each recipe's [CfE grid](#the-cfe-grid) into its
+  page, ahead of the ingredient list, and writes `culina-grid.css` beside
+  `culina.css` — a separate sheet, so a collection's own card sheet keeps
+  the grid. The grid stays hidden until a layout shows it.
+- `layout` is the layout a page opens in: `card` (the default), `grid`,
+  or `grid-slant`, written as `data-layout` on `<html>`. A grid layout
+  shows the grid in place of the ingredient list and the method; a
+  collection's own script may change the attribute. An unknown layout, or
+  a grid layout without `grid = true`, fails the build and names the fix.
+- The grid stylesheet asks for Atkinson Hyperlegible Next: an installed
+  copy, else `static/fonts/AtkinsonHyperlegibleNext.woff2` if the
+  collection ships one, else the system sans. A font is a choice, not a
+  requirement, so its absence is silent.
 
 The filename is policy, not a lookup detail. A policy file that the
 tool does not read degrades the site without a trace, and an unread

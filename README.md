@@ -82,10 +82,17 @@ at an angle instead of straight up.
 
 Walks a directory of `.culina` files and emits flat HTML pages, an index,
 and CSS. Collection policy comes from a `.culina.toml` or `culina.toml`
-at the input root (`[site]` title, description; `[lexicon]` overlay
-path); a `culina.css` at the root replaces the built-in default
-stylesheet. Broken recipes fail the build. A `static/` directory is
-copied verbatim.
+at the input root (`[site]` title, description, grid, layout;
+`[lexicon]` overlay path); a `culina.css` at the root replaces the
+built-in default stylesheet. Broken recipes fail the build. A `static/`
+directory is copied verbatim.
+
+With `grid = true`, every page also carries its Cooking For Engineers
+grid, styled by `culina-grid.css`, and `layout = "grid"` (or
+`"grid-slant"`) opens pages on it instead of the card. The grid reads best
+in [Atkinson Hyperlegible Next](https://fonts.google.com/specimen/Atkinson+Hyperlegible+Next):
+install it, or put the variable woff2 at
+`static/fonts/AtkinsonHyperlegibleNext.woff2`.
 
 ## Theming
 

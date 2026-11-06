@@ -716,20 +716,6 @@ description, grid, layout), `[lexicon]` `file = "overlay.toml"` points at
 the lexicon overlay. Fields are added when real collections need them —
 the same admission discipline as the metadata registry.
 
-Page URLs are a contract, so the rule for them is fixed:
-
-- **A page's URL is its file name.** `recipes/bread/milk-bread.culina`
-  publishes as `milk-bread.html` at the site root. Recipes are found at
-  any depth; hidden directories (`.git`, a tool checkout) are skipped.
-- **Directories never appear in URLs.** They organize the repository
-  only, so moving a recipe between directories keeps its URL. Category
-  views, when they exist, come from metadata (`course`, `cuisine`,
-  `keywords`), which lets a recipe sit in two categories.
-- **Two recipes with one file name fail the build**, naming both: a
-  silent overwrite would drop one.
-- **Renaming a file changes its URL.** That is the one move that breaks a
-  link; redirects are tooling's, if a collection ever needs them.
-
 - `grid = true` puts each recipe's [CfE grid](#the-cfe-grid) into its
   page, after the method, and writes `culina-grid.css` beside
   `culina.css` — a separate sheet, so a collection's own card sheet keeps
@@ -759,6 +745,20 @@ stays green. The resolution is loud:
 | neither name | defaults; the build proceeds |
 | exactly one, either name | that file is the policy |
 | both names | error that names both; the author removes one |
+
+Page URLs are a contract, so the rule for them is fixed:
+
+- **A page's URL is its file name.** `recipes/bread/milk-bread.culina`
+  publishes as `milk-bread.html` at the site root. Recipes are found at
+  any depth; hidden directories (`.git`, a tool checkout) are skipped.
+- **Directories never appear in URLs.** They organize the repository
+  only, so moving a recipe between directories keeps its URL. Category
+  views, when they exist, come from metadata (`course`, `cuisine`,
+  `keywords`), which lets a recipe sit in two categories.
+- **Two recipes with one file name fail the build**, naming both: a
+  silent overwrite would drop one.
+- **Renaming a file changes its URL.** That is the one move that breaks a
+  link; redirects are tooling's, if a collection ever needs them.
 
 ## Output styles
 

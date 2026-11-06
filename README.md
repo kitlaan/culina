@@ -80,8 +80,10 @@ at an angle instead of straight up.
 ./target/debug/culina-site --in recipes/ --out public/
 ```
 
-Walks a directory of `.culina` files and emits flat HTML pages, an index,
-and CSS. Collection policy comes from a `.culina.toml` or `culina.toml`
+Walks a directory of `.culina` files, at any depth, and emits flat HTML
+pages, an index, and CSS. Hidden directories (`.git`, a tool checkout such
+as `.culina-src`) are skipped. Pages are named by file name, so two
+recipes with one name in different directories fail the build. Collection policy comes from a `.culina.toml` or `culina.toml`
 at the input root (`[site]` title, description, grid, layout;
 `[lexicon]` overlay path); a `culina.css` at the root replaces the
 built-in default stylesheet. Broken recipes fail the build. A `static/`

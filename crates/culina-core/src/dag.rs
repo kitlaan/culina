@@ -118,6 +118,38 @@ pub fn validate(doc: &Document) -> Result<()> {
     Ok(())
 }
 
+/// Steps that use ingredients but feed nothing: no `_`, no `=>`, and not
+/// the last step. The result floats free of the graph (design.md, Threads
+/// and the DAG), so the warning says how to tie it in.
+pub fn warnings(doc: &Document) -> Vec<String> {
+    let steps: Vec<&Step> = doc.steps().collect();
+    let last = steps.len().saturating_sub(1);
+    steps
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| *i < last)
+        .filter_map(|(_, step)| {
+            let segs: Vec<&Seg> = step
+                .head
+                .iter()
+                .chain(step.continuations.iter().flat_map(|c| c.segs.iter()))
+                .collect();
+            let uses = segs
+                .iter()
+                .any(|s| matches!(s, Seg::Tag(t) if t.sigil == Sigil::At));
+            let threads = segs
+                .iter()
+                .any(|s| matches!(s, Seg::Arrow) || as_thread(s).is_some());
+            (uses && !threads).then(|| {
+                format!(
+                    "line {}: ':{}' uses ingredients but makes nothing a later step uses — add `=> _name` and consume `_name` where it is used",
+                    step.line_no, step.action.verb
+                )
+            })
+        })
+        .collect()
+}
+
 fn as_thread(seg: &Seg) -> Option<&Tag> {
     match seg {
         Seg::Tag(t) if t.sigil == Sigil::Underscore => Some(t),

@@ -119,3 +119,21 @@ fn joins_consume_two_live_threads() {
     check(":whisk @{egg|1} => _wash\n:mix => _a\n:mix => _b\n:brush _a + _b with _wash\n")
         .expect("plus joins two live threads");
 }
+
+// --- Floating steps (design.md, Threads and the DAG) ---
+
+#[test]
+fn a_step_that_feeds_nothing_warns_with_the_fix() {
+    let src = ">> title: T\n>> servings: 1\n\n:spread @{oil|2 tbsp} on #{sheet pan}.\n:mix @{flour|1 cup} => _dough.\n:{bake|20 min} _dough.\n";
+    let (_, _, warnings) = culina_core::fmt::prepare(src, None).unwrap();
+    assert_eq!(warnings.len(), 1, "{warnings:?}");
+    assert!(warnings[0].starts_with("line 4: ':spread'"), "{warnings:?}");
+    assert!(warnings[0].contains("`=> _name`"), "{warnings:?}");
+}
+
+#[test]
+fn threads_setup_and_the_last_step_do_not_warn() {
+    let src = ">> title: T\n>> servings: 1\n\n:preheat #{oven|400F}.\n:mix @{flour|1 cup} => _dough.\n:season _dough with @salt.\n:serve with @{lime|1}.\n";
+    let (_, _, warnings) = culina_core::fmt::prepare(src, None).unwrap();
+    assert!(warnings.is_empty(), "{warnings:?}");
+}

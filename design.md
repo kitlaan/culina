@@ -833,8 +833,14 @@ and the `culina-grid` CLI):
   again mid-cook (`lower oven 375F`) is a change, so it rides the next
   step instead. **Trailing steps** with no ingredient, no time, and no
   join (`serve`, `store`) are the footer.
-- **Rotation is layout**: a cell past the first step column that spans
-  more than one row reads sideways.
+- **Rotation is layout**: a step cell four rows tall or taller reads
+  sideways, first column included. A label longer than its rows wraps
+  whole — a chip never splits — instead of stretching the rows. Two or
+  three rows is still the shape of its words, so it reads across, its
+  time under the verb on the second line the rows allow; the sideways
+  wrap cap would cramp it, for a 30px row leaves a two-row cell less
+  room than a long word. The rule is the one geometric fact — tall —
+  not a column's position.
 - **The slanted grid is an option** (`culina-grid-slant`, `--slant`):
   the table shears so the column lines lean into a forward slash. Rows
   stay level, so channels and L joins still read; each cell's content

@@ -54,14 +54,21 @@ table.culina-grid {
 .culina-grid td.culina-grid-rotate { padding: 6px 2px; vertical-align: middle; }
 /* A label longer than its rows wraps into a second column instead of
    stretching every row it spans. 30px is one row: 14px text at 1.35,
-   5px padding each side, a 1px border. */
+   5px padding each side, a 1px border. Words break mid-word rather than
+   spill past the cap — the second column is the cap's answer to any
+   label that cannot break, a lone long word included. */
 .culina-grid-rotate .culina-grid-ops {
   display: inline-block; writing-mode: vertical-rl;
   /* Inline, not block: in vertical writing the line runs down the page. */
   max-inline-size: calc(var(--culina-grid-rows, 1) * 30px - 12px);
   white-space: normal;  /* the step cell's nowrap would forbid the wrap */
+  overflow-wrap: break-word;
   font-size: 15px;
 }
+/* A rotated chip keeps its words together: when a line runs out, the
+   chip moves whole to its own column rather than splitting. The
+   four-row floor on rotation keeps the cap — 108px at four rows —
+   roomy enough that the move always has the space. */
 .culina-grid-rotate .culina-grid-time { padding: 5px 0; font-size: 13px; }
 
 /* A channel carries a result right; `hidden` wins in border-collapse, so

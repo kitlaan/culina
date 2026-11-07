@@ -49,7 +49,7 @@ pub enum CellKind {
     /// (`=> _roots + _leaves`) reaches its second consumer this way.
     Thread { name: String },
     /// One or more steps on the same thing. `rotate` is a layout fact: a
-    /// multi-row cell past the first step column reads sideways.
+    /// cell four rows or taller reads sideways, first column included.
     Step { ops: Vec<Op>, rotate: bool },
     /// Carries a result right. `into_step` is false for a result that no
     /// step uses, which runs to the table edge instead of opening into an L.
@@ -521,9 +521,10 @@ fn lay(nodes: &[Node], i: usize, row: usize, rows: &mut Vec<Vec<GridCell>>) -> u
     let span = (r - row).max(1);
     let kind = CellKind::Step {
         ops: n.ops.clone(),
-        // The first step column reads across; later columns turn sideways
-        // once a cell spans rows.
-        rotate: c >= 2 && span > 1,
+        // A tall cell reads sideways, whichever column it sits in. Four
+        // rows is where tall starts: two or three is still the shape of
+        // the words, and the wrap cap would cramp them.
+        rotate: span >= 4,
     };
     place(
         rows,
@@ -639,6 +640,11 @@ pub fn html_grid_with(g: &GridModel, opts: &GridOptions) -> String {
                     } else {
                         "culina-grid-step"
                     };
+                    // A short cell reads across; two rows give the room
+                    // for a second line, so its first chip sits under
+                    // the verb instead of stretching the column.
+                    let lines = !*rotate && c.rowspan >= 2;
+                    let mut chip_line = false;
                     let body = ops
                         .iter()
                         .map(|o| {
@@ -648,14 +654,26 @@ pub fn html_grid_with(g: &GridModel, opts: &GridOptions) -> String {
                                 esc(&o.verb)
                             );
                             for t in &o.temps {
+                                let lead = if lines && !chip_line {
+                                    chip_line = true;
+                                    "<br>"
+                                } else {
+                                    " "
+                                };
                                 s.push_str(&format!(
-                                    " <span class=\"culina-grid-temp\">{}</span>",
+                                    "{lead}<span class=\"culina-grid-temp\">{}</span>",
                                     esc(t)
                                 ));
                             }
                             if let Some(t) = &o.time {
+                                let lead = if lines && !chip_line {
+                                    chip_line = true;
+                                    "<br>"
+                                } else {
+                                    " "
+                                };
                                 s.push_str(&format!(
-                                    " <span class=\"culina-grid-time\">{}</span>",
+                                    "{lead}<span class=\"culina-grid-time\">{}</span>",
                                     esc(t)
                                 ));
                             }

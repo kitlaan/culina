@@ -123,13 +123,53 @@ fn ingredients_show_one_unit_preferring_weight() {
 }
 
 #[test]
-fn only_tall_cells_past_the_first_step_column_rotate() {
-    let g = model(":mix @{a|1}, @{b|1} => _x.\n:{rest|1 hour} _x.\n:add @{c|1} to _x.\n");
+fn tall_cells_rotate_and_short_cells_read_across() {
+    let g = model(
+        ":mix @{a|1}, @{b|1}, @{c|1}, @{d|1} => _x.\n:season @{e|1}, @{f|1} => _y.\n:{rest|10 min} _y.\n:{hold|1 hour} _x.\n:garnish @{i|1}.\n",
+    );
     let rot = |v| matches!(step(&g, v).kind, CellKind::Step { rotate, .. } if rotate);
-    assert!(!rot("mix"), "first step column reads across");
-    assert!(rot("rest"));
+    assert!(
+        rot("mix"),
+        "four rows is tall: the first step column reads sideways"
+    );
+    assert!(rot("hold"), "a tall cell in a later column reads sideways");
+    // Two or three rows is still the shape of the words: across it reads.
+    assert!(
+        !rot("season"),
+        "a two-row cell stays horizontal, first column too"
+    );
+    assert!(
+        !rot("rest"),
+        "a two-row cell stays horizontal in later columns"
+    );
+    assert!(!rot("garnish"), "a single-row cell stays horizontal");
     // The rotated cell carries its row count for the wrap cap.
     assert!(html_grid(&g).contains("style=\"--culina-grid-rows: "));
+}
+
+#[test]
+fn a_short_cells_chips_sit_under_the_verb() {
+    // Two rows give the room for a second line, so the time rides under
+    // the verb rather than stretching the column.
+    let g = model(":{rest|a few minutes} @{a|1}, @{b|1} => _x.\n");
+    let html = html_grid(&g);
+    assert!(
+        html.contains(">rest</span><br><span class=\"culina-grid-time\">a few minutes</span>"),
+        "{html}"
+    );
+    // One row is one line: the chip stays beside the verb.
+    let one = model(":{proof|5-10 min} @{c|1} => _y.\n");
+    let html = html_grid(&one);
+    assert!(
+        html.contains(">proof</span> <span class=\"culina-grid-time\">5-10 min</span>")
+            && !html.contains("<br>"),
+        "{html}"
+    );
+    // A tall cell reads sideways instead: the cap wraps it, so no line break.
+    let tall = model(":{hold|1 hour} @{d|1}, @{e|1}, @{f|1}, @{g|1} => _z.\n");
+    let html = html_grid(&tall);
+    assert!(html.contains("culina-grid-rotate"), "{html}");
+    assert!(!html.contains("<br>"), "{html}");
 }
 
 #[test]
